@@ -19,37 +19,23 @@ struct FWeaponDetails
 
 public:
     UPROPERTY(EditAnywhere,  Category = "Visuals")
-    FName WeaponName;
+    FName WeaponName="";
 
     UPROPERTY(EditAnywhere, Category = "Visuals")
-    FName SocketName;
+    FName SocketName = "";
 
     UPROPERTY(EditAnywhere,  Category = "Visuals")
-    UStaticMesh* WeaponMesh;
+    UStaticMesh* WeaponMesh = nullptr;
+
 
     UPROPERTY(EditAnywhere,  Category = "Stats")
-    float WeaponDamage;
+    float TrueDamage = 0.f;
 
-    UPROPERTY(EditAnywhere,  Category = "Stats")
-    float TrueDamage;
-
-    UPROPERTY(EditAnywhere,  Category = "Stats")
-	float MagicDamage;
-
-	UPROPERTY(EditAnywhere, Category = "Stats")
-	float AttackSpeed;
 
 
     UPROPERTY(EditAnywhere, Category = "Stats")
-    float Armor;
+    float Armor = 0.f;
 
-
-    UPROPERTY(EditAnywhere, Category = "Stats")
-    FGameplayTag DamageTypeTag; 
-
-
-    UPROPERTY(EditAnywhere, Category = "GAS")
-    TSubclassOf<UGameplayEffect> DamageEffectClass;
 
     UPROPERTY(EditAnywhere, Category = "Weapon BP")
     TSubclassOf<class AWeaponBase> WeaponClass;

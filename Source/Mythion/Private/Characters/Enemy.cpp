@@ -13,11 +13,21 @@
 #include "Characters/Enemies/Enemy_Controller_Types.h"
 #include "AIController.h"
 #include "BrainComponent.h"
+#include "Characters/PlayerCharacter.h"
+#include "M_QuestComponent.h"
+#include "M_PlayerController.h"
+
 
 
 
 AEnemy::AEnemy()
 {
+	AbilitySystemComponent = CreateDefaultSubobject<UM_AbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent->SetIsReplicated(true);
+
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
+
+	AttributeSet = CreateDefaultSubobject<UM_AttributeSet>(TEXT("AttributeSet"));
 
 	
 
@@ -27,10 +37,8 @@ AEnemy::AEnemy()
 	HealthBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	HealthBarComponent->SetDrawSize(FVector2D(200.f, 40.f));
 	HealthBarComponent->SetVisibility(false);
-	
-
-		bReplicates = true;
-		SetReplicateMovement(true);
+	bReplicates = true;
+	SetReplicateMovement(true);
 }
 
 UAbilitySystemComponent* AEnemy::GetAbilitySystemComponent() const
@@ -54,13 +62,15 @@ void AEnemy::Tick(float DeltaTime)
 		float Distance = FVector::Dist(GetActorLocation(), PlayerPawn->GetActorLocation());
 		bool bShouldShow = Distance <= HealthBarVisibilityRadius;
 
-	
+		HealthBarComponent->SetVisibility(bShouldShow); 
+
 
 	}
 }
 
 void AEnemy::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
 
 void AEnemy::Multicast_PlayDeathAnimation_Implementation()
@@ -85,46 +95,61 @@ void AEnemy::Multicast_PlayDeathAnimation_Implementation()
 
 
 
+void AEnemy::FindTheCorrectEnemy()
+{
+
+
+		if (!HasAuthority()) return;
+
+		UE_LOG(LogTemp, Warning, TEXT("[QuestKill] FindTheCorrectEnemy called. LastDamageInstigator valid: %s"),
+			IsValid(LastDamageInstigator) ? TEXT("YES") : TEXT("NO"));
+
+		if (!IsValid(LastDamageInstigator)) return;
+
+		APlayerCharacter* KillerChar = Cast<APlayerCharacter>(LastDamageInstigator->GetPawn());
+		UE_LOG(LogTemp, Warning, TEXT("[QuestKill] KillerChar valid: %s"), IsValid(KillerChar) ? TEXT("YES") : TEXT("NO"));
+
+		if (!IsValid(KillerChar)) return;
+
+		UM_QuestComponent* QuestComp = KillerChar->FindComponentByClass<UM_QuestComponent>();
+		UE_LOG(LogTemp, Warning, TEXT("[QuestKill] QuestComp valid: %s"), IsValid(QuestComp) ? TEXT("YES") : TEXT("NO"));
+
+		if (!IsValid(QuestComp)) return;
+
+		QuestComp->OnEnemyKilled(GetClass(), LastDamageInstigator);
+			UE_LOG(LogTemp, Warning, TEXT("[QuestKill] OnEnemyKilled called for class %s"), *GetClass()->GetName());
+}
+
 void AEnemy::BeginPlay()
 {
 	Super::BeginPlay();
-	if (HealthBarWidgetClass && HealthBarComponent)
+
+
+	if (IsValid(AbilitySystemComponent))
 	{
-		HealthBarComponent->SetWidgetClass(HealthBarWidgetClass);
-		HealthBarComponent->InitWidget();
+		AbilitySystemComponent->InitAbilityActorInfo(this, this);
 
-		if (UM_Enemy_Verticals* Widget = Cast<UM_Enemy_Verticals>(HealthBarComponent->GetWidget()))
+		if (HasAuthority())
 		{
-			if (IsValid(AbilitySystemComponent))
+			if (IsValid(InitializeAttributesEffectEnemy))
 			{
-				int32 Level = FMath::FloorToInt(
-					AbilitySystemComponent->GetNumericAttribute(UM_AttributeSet::GetLevelAttribute()));
-				Widget->InitializeWidget(AbilitySystemComponent, EnemyDisplayName, Level);
+				InitializeEnemyAttributes(InitializeAttributesEffectEnemy);
 			}
-		}
+			
 
-		if (HasAuthority() && IsValid(AbilitySystemComponent))
-		{
-			AbilitySystemComponent->GiveAbility(
-				FGameplayAbilitySpec(AbilityClass, 1)
-			);
+			for (TSubclassOf<UGameplayAbility> Ability : AbilityClasses)
+			{
+				if (IsValid(Ability))
+				{
+					AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(Ability, 1));
+				}
+			}
+			AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
+				UM_AttributeSet::GetHealthAttribute())
+				.AddUObject(this, &ABaseCharacter::OnHealthChanged);
 		}
-
 	}
 
-
-	if (HasAuthority())
-	{
-		if (IsValid(AbilitySystemComponent))
-		{
-			AbilitySystemComponent->InitAbilityActorInfo(this, this);
-
-			if (IsValid(InitializeAttributesEffect))
-			{
-				InitializeAttributes(InitializeAttributesEffect);
-			}
-		}
-	}
 	if (HealthBarWidgetClass && HealthBarComponent)
 	{
 		HealthBarComponent->SetWidgetClass(HealthBarWidgetClass);
@@ -134,14 +159,26 @@ void AEnemy::BeginPlay()
 		if (UM_Enemy_Verticals* Widget = Cast<UM_Enemy_Verticals>(HealthBarComponent->GetWidget()))
 		{
 			Widget->SetOwningEnemy(this);
+
+			if (IsValid(AbilitySystemComponent))
+			{
+				int32 Level = FMath::FloorToInt(AbilitySystemComponent->GetNumericAttribute(UM_AttributeSet::GetLevelAttribute()));
+				Widget->InitializeWidget(AbilitySystemComponent, EnemyDisplayName, Level);
+			}
 		}
 	}
 
-
-	if (HasAuthority()) {
-		if (WeaponData) { SpawnWeapon(); }
+	
+	
+	if (HasAuthority())
+	{
+		if (WeaponData)
+		{
+			SpawnWeapon();
+		}
 	}
 
+	SpawnPoint = GetActorLocation();
 }
 
 void AEnemy::PossessedBy(AController* NewController)
@@ -156,6 +193,11 @@ void AEnemy::PossessedBy(AController* NewController)
 void AEnemy::HandleDeath()
 {
 
+	Super::HandleDeath();
+
+	UE_LOG(LogTemp, Warning, TEXT("[QuestKill] HandleDeath called!"));
+	if (!bAlive) return;
+	bAlive = false;
 	AM_Enemy_Controller* AIController = Cast<AM_Enemy_Controller>(GetController());
 	if (IsValid(AIController) && IsValid(AIController->GetBlackboardComponent()))
 	{
@@ -164,8 +206,6 @@ void AEnemy::HandleDeath()
 		AIController->StopMovement();
 		AIController->BrainComponent->StopLogic(TEXT("Dead"));
 	}
-	Super::HandleDeath();
-
 	
 	if (HasAuthority())
 	{
@@ -182,7 +222,60 @@ void AEnemy::HandleDeath()
 
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCharacterMovement()->DisableMovement();
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SetLifeSpan(3.f);
+	if (HasAuthority())
+	{
+		SpawnXpReward();
+		SpawnActor();
+	}
+	FindTheCorrectEnemy();
+
+}
+
+void AEnemy::SpawnXpReward()
+{
+	if (!HasAuthority()) return;
+	if (!IsValid(XpRewardClass)) return;
+
+	FVector SpawnLocation = GetActorLocation();
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	GetWorld()->SpawnActor<AActor>(XpRewardClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
+}
+
+void AEnemy::SpawnActor()
+{
+
+	if (!HasAuthority()) return;
+	FVector CachedSpawnPoint = SpawnPoint;
+	FRotator CachedRotation = GetActorRotation();
+	TSubclassOf<AEnemy> EnemyClass = GetClass();
+	AM_Enemy_Area_Spawner* CachedOwningSpawner = OwningSpawner;
+	UWorld* World = GetWorld();
+
+
+	FTimerHandle LocalTimer;
+	World->GetTimerManager().SetTimer(LocalTimer, [World, CachedSpawnPoint, CachedRotation, EnemyClass, CachedOwningSpawner]()
+		{
+			if (!IsValid(World)) return;
+			FActorSpawnParameters Params;
+			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+			AEnemy* NewEnemy = World->SpawnActor<AEnemy>(EnemyClass, CachedSpawnPoint, CachedRotation, Params);
+			if (IsValid(NewEnemy))
+				NewEnemy->OwningSpawner = CachedOwningSpawner;
+		}, 30.f, false);
+
+	
+}
+
+void AEnemy::InitializeEnemyAttributes(TSubclassOf<UGameplayEffect> InitEffect)
+{
+	if (!IsValid(InitEffect) || !IsValid(AbilitySystemComponent)) return;
+	FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
+	FGameplayEffectSpecHandle Spec = AbilitySystemComponent->MakeOutgoingSpec(InitEffect, 1.f, Context);
+	AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 }
 
 void AEnemy::Multicast_HideWeapon_Implementation()

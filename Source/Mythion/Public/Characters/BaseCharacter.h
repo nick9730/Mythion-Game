@@ -9,35 +9,39 @@
 #include "GameplayEffectTypes.h"
 #include "BaseCharacter.generated.h"
 
-class UM_AbilitySystemComponent;
-class UM_AttributeSet;
+//class UM_AbilitySystemComponent;
+//class UM_AttributeSet;
 class UGameplayEffect;
 class UGameplayAbility;
 class UWeaponDataASset;
 class AWeaponBase;
 
 UCLASS()
-class MYTHION_API ABaseCharacter : public ACharacter, public IAbilitySystemInterface
+class MYTHION_API ABaseCharacter : public ACharacter 
 {
 	GENERATED_BODY()
 
 public:
 	ABaseCharacter();
 
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	const UM_AttributeSet* GetAttributeSet() const { return AttributeSet; }
+	//virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	//const UM_AttributeSet* GetAttributeSet() const { return AttributeSet; }
 
 
-	UPROPERTY(Replicated)
+	UPROPERTY(Replicated,BlueprintReadOnly)
 	TObjectPtr<AWeaponBase> EquippedWeapon;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	TObjectPtr<AWeaponBase> EquippedArmor;
+
+	UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist | AIPerception")
 	UWeaponDataASset* WeaponData;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist | AIPerception")
 	FName WeaponName;
 
-	virtual void SpawnWeapon();
+	virtual void 	SpawnWeapon();
+	void OnHealthChanged(const FOnAttributeChangeData& Data);
 
 protected:
 	virtual void BeginPlay() override;
@@ -48,11 +52,11 @@ protected:
 	void InitializeAttributes(TSubclassOf<UGameplayEffect> InitEffect) const;
 	virtual void HandleDeath();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
-	TObjectPtr<UM_AbilitySystemComponent> AbilitySystemComponent;
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
+	//TObjectPtr<UM_AbilitySystemComponent> AbilitySystemComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
-	TObjectPtr<UM_AttributeSet> AttributeSet;
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
+	//TObjectPtr<UM_AttributeSet> AttributeSet;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
 	TSubclassOf<UGameplayEffect> InitializeAttributesEffect;
@@ -64,6 +68,5 @@ protected:
 	void OnRep_AliveChanged() {}
 
 private:
-	void OnHealthChanged(const FOnAttributeChangeData& Data);
 };
 

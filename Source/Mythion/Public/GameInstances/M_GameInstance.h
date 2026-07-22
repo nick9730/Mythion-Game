@@ -19,14 +19,28 @@ class MYTHION_API UM_GameInstance : public UGameInstance
 
 public:	
 
-	UM_GameInstance();
+    UM_GameInstance();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup")
-	TSoftObjectPtr<UCharacterClasses> SelectedClassData;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Mythion | Character Selection")
-	FGameplayTag SelectedClassTag;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup")
+    TSoftObjectPtr<UCharacterClasses> SelectedClassData;
 
+    UPROPERTY(BlueprintReadWrite, Category = "Mythion | Character Selection")
+    FGameplayTag SelectedClassTag;
+
+    // Backend Auth
+    UPROPERTY(BlueprintReadWrite, Category = "Mythion | Backend")
+    FString AuthToken;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Mythion | Backend")
+    FString LoggedInUsername;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Mythion | Backend")
+    bool bIsLoggedIn = false;
+
+    // Clear token on logout
+    UFUNCTION(BlueprintCallable, Category = "Mythion | Backend")
+    void Logout();
 
 	
 };

@@ -24,6 +24,10 @@ public class Mythion : ModuleRules
             "StructUtils",
 			"Slate",
 			"SlateCore",
+			"HTTP",
+			"Json",
+			"JsonUtilities",
+             "WebSockets"
 
 
         });

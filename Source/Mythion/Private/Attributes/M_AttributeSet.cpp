@@ -12,14 +12,17 @@
 #include "Engine/Engine.h"
 #include "Characters/PlayerCharacter/M_PlayerState.h"
 #include <Kismet/GameplayStatics.h>
-
-
+#include "Perception/AISense_Damage.h"
+#include "Characters/Enemy.h"
+/*
+simple -> webserver  express  or hono
+oarem  -> drissle oarem  or micro oarem
+validation -> zod  
+there are some templates for faster solution 
+*/
 
 UM_AttributeSet::UM_AttributeSet()
 {
-
- InitLevel(1.f);
-
 }
 
 void UM_AttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -36,20 +39,149 @@ void UM_AttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME_CONDITION_NOTIFY(UM_AttributeSet, XpMax, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UM_AttributeSet, Level, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UM_AttributeSet, Coins, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UM_AttributeSet, Energy, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UM_AttributeSet, MaxEnergy, COND_None, REPNOTIFY_Always);
+
 }
 
 void UM_AttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
 {
 	Super::PostGameplayEffectExecute(Data);
 
+
+	if (Data.EvaluatedData.Attribute == GetEnergyAttribute())
+	{
+
+
+		if (GetMaxEnergy() > 0.f)
+		{
+			SetMaxEnergy(FMath::Max(GetMaxEnergy(), 1.f));
+			SetEnergy(FMath::Clamp(GetEnergy(), 0.f, GetMaxEnergy()));
+		}
+	}
+
+
 	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
 	{
+	
+		if (Data.EvaluatedData.Magnitude < 0.0f) {
+
+			if (UAbilitySystemComponent* InstigatorASC = Data.EffectSpec.GetContext().GetInstigatorAbilitySystemComponent())
+			{
+				if (APlayerCharacter* InstigatorChar = Cast<APlayerCharacter>(InstigatorASC->GetAvatarActor()))
+				{
+					AActor* Owner = GetOwningActor();
+					if (AEnemy* EnemyOwner = Cast<AEnemy>(Owner))
+					{
+						EnemyOwner->LastDamageInstigator = Cast<AM_PlayerController>(InstigatorChar->GetController());
+					}
+				}
+
+			}
+		}
+
 
 		if (GetMaxHealth() > 0.f)
 		{
 			SetMaxHealth(FMath::Max(GetMaxHealth(), 1.f));
 			SetHealth(FMath::Clamp(GetHealth(), 0.f, GetMaxHealth()));
 		}
+
+
+		UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+		if (!IsValid(ASC)) return;
+		bool bStillHasDeadTag = ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName("Status.Dead")));
+
+		if (Data.EffectSpec.Def->GetAssetTags().HasTag(FGameplayTag::RequestGameplayTag("Effects.HitReaction")) && GetHealth() > 0.f && !bStillHasDeadTag) {
+
+		FGameplayTagContainer HitReactionTag;
+		HitReactionTag.AddTag(FGameplayTag::RequestGameplayTag(FName("Spells.Common.HitReaction")));
+		GetOwningAbilitySystemComponent()->TryActivateAbilitiesByTag(HitReactionTag);
+		}
+
+		if (GetHealth() <= 0.f) {
+
+
+			//ASC->AddLooseGameplayTag(FGameplayTag::RequestGameplayTag(FName("Status.Dead")));
+
+			FGameplayTagContainer DeadTag;
+			DeadTag.AddTag(FGameplayTag::RequestGameplayTag(FName("Status.Dead")));
+			GetOwningAbilitySystemComponent()->TryActivateAbilitiesByTag(DeadTag);
+
+			AActor* Owner = ASC->GetAvatarActor();
+			APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(Owner);
+			if (IsValid(PlayerChar))
+			{
+				PlayerChar->DeathLocation = PlayerChar->GetActorLocation(); // <-- ΝΕΟ, εδώ σίγουρα server
+			}
+			/*
+*/
+		
+			if (IsValid(PlayerChar))
+			{
+				AM_PlayerController* PC = Cast<AM_PlayerController>(PlayerChar->GetController());
+				if (IsValid(PC))
+					PC->Client_ShowRespawnWidget();
+			}
+
+
+
+
+		} 
+
+
+		if (Data.EvaluatedData.Magnitude < 0.0f)
+		{
+			AActor* DamagedCharacter = GetOwningAbilitySystemComponent()->GetAvatarActor();
+			AActor* AttackerCharacter = nullptr;
+
+			if (UAbilitySystemComponent* InstigatorASC = Data.EffectSpec.GetContext().GetInstigatorAbilitySystemComponent())
+			{
+				AttackerCharacter = InstigatorASC->GetAvatarActor();
+			}
+
+			if (!IsValid(AttackerCharacter))
+			{
+				AttackerCharacter = Data.EffectSpec.GetContext().GetEffectCauser();
+			}
+
+			if (IsValid(DamagedCharacter) && IsValid(AttackerCharacter))
+			{
+				UAISense_Damage::ReportDamageEvent(
+					GetWorld(),
+					DamagedCharacter,
+					AttackerCharacter, 
+					FMath::Abs(Data.EvaluatedData.Magnitude),
+					DamagedCharacter->GetActorLocation(),
+					DamagedCharacter->GetActorLocation()
+				);
+			}
+		
+		}
+/*
+		if(GetHealth()<= 0.f ){
+		
+
+			
+
+			bool bActivated = GetOwningAbilitySystemComponent()->TryActivateAbilitiesByTag(DeadTag);
+			AActor* Owner = GetOwningAbilitySystemComponent()->GetAvatarActor();
+			APlayerCharacter* PlayerChar = Cast<APlayerCharacter>(Owner);
+			if (IsValid(PlayerChar))
+			{
+				AM_PlayerController* PC = Cast<AM_PlayerController>(PlayerChar->GetController());
+				if (IsValid(PC))
+					PC->Client_ShowRespawnWidget();
+			}
+*/
+			/*
+			FGameplayTagContainer RespawnTag;
+			RespawnTag.AddTag(FGameplayTag::RequestGameplayTag(FName("Status.Alive")));
+			GetOwningAbilitySystemComponent()->TryActivateAbilitiesByTag(RespawnTag);
+
+			*/
+		
+		
 	}
 	if (Data.EvaluatedData.Attribute == GetManaAttribute())
 	{
@@ -60,28 +192,15 @@ void UM_AttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallback
 		}
 	}
 
-	/*
-	*/
-
-
-	if (Data.EvaluatedData.Attribute == GetXpAttribute() || Data.EvaluatedData.Attribute == GetXpMaxAttribute()) 
-	{
-		APlayerCharacter* Character = Cast<APlayerCharacter>(GetOwningActor());
-		if (IsValid(Character) && IsValid(Character->XpScaleTable)) {
-			CurrentLevel = GetOwningAbilitySystemComponent()->GetNumericAttributeBase(GetLevelAttribute());
-			XpMaxLimit = Character->XpScaleTable->FindCurve(FName("XpMax"), "XP Lookup")->Eval(CurrentLevel);
-			SetXpMax(XpMaxLimit);
-				}		
-	}
-
-	if (Data.EvaluatedData.Attribute == GetLevelAttribute()) {
-;
+			
 	
+	if (Data.EvaluatedData.Attribute == GetLevelAttribute()) {	
+
 		
 	}
+		
 
-
-			if (!bAttributesInitialized)
+	if (!bAttributesInitialized)
 			{
 
 				bAttributesInitialized = true;
@@ -96,7 +215,14 @@ void UM_AttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallback
 
 				OnAttributesInitialized.Broadcast();
 			}
+
+
 	
+}
+
+void UM_AttributeSet::PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue, float NewValue) 
+{
+	//Super::PostAttributeChange(Attribute, OldValue, NewValue);
 }
 
 void UM_AttributeSet::PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const
@@ -104,38 +230,7 @@ void UM_AttributeSet::PreAttributeBaseChange(const FGameplayAttribute& Attribute
 
 	Super::PreAttributeBaseChange(Attribute, NewValue);
 
-	APlayerCharacter* Character = Cast<APlayerCharacter>(GetOwningActor());
-	if (IsValid(Character) && IsValid(Character->XpScaleTable)) {
-		CurrentLevel = GetOwningAbilitySystemComponent()->GetNumericAttributeBase(GetLevelAttribute());
-		XpMaxLimit = Character->XpScaleTable->FindCurve(FName("XpMax"), "XP Lookup")->Eval(CurrentLevel);
-
-
-	if (Attribute == GetXpAttribute())
-	{
-			while (NewValue >= XpMaxLimit)
-			{
-
-				NewValue = NewValue - XpMaxLimit;
-
-				APlayerCharacter* CharacterE = Cast<APlayerCharacter>(GetOwningActor());
-				UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
-				FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
-				FGameplayEffectSpecHandle Spec = ASC->MakeOutgoingSpec(CharacterE->LevelUpEffect, 1.f, Context);
-				ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data);
-
-				CurrentLevel = GetOwningAbilitySystemComponent()->GetNumericAttributeBase(GetLevelAttribute());
-
-				FGameplayEffectSpecHandle SpecLevelUp = ASC->MakeOutgoingSpec(CharacterE->LevelUpStats, CurrentLevel, Context);
-				ASC->ApplyGameplayEffectSpecToSelf(*SpecLevelUp.Data);
-				OnLevelUp.Broadcast(CurrentLevel);
-				UE_LOG(LogTemp, Warning, TEXT("Broadcasting OnLevelUp: %f"), CurrentLevel);
-		
-				XpMaxLimit = Character->XpScaleTable->FindCurve(FName("XpMax"), "XP Lookup")->Eval(CurrentLevel);
-			}
-		}
-
-
-	}
+	
 }
 
 
@@ -213,4 +308,19 @@ void UM_AttributeSet::OnRep_Coins(const FGameplayAttributeData& OldValue)
 	UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
 	if (!IsValid(ASC)) return;
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UM_AttributeSet, Coins, OldValue);
+}
+
+void UM_AttributeSet::OnRep_Energy(const FGameplayAttributeData& OldValue)
+{
+	UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+	if (!IsValid(ASC)) return;
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UM_AttributeSet, Energy, OldValue);
+}
+
+
+void UM_AttributeSet::OnRep_MaxEnergy(const FGameplayAttributeData& OldValue)
+{
+	UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+	if (!IsValid(ASC)) return;
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UM_AttributeSet, MaxEnergy, OldValue);
 }

@@ -8,3 +8,11 @@ UM_GameInstance::UM_GameInstance()
 
 	
 }
+
+void UM_GameInstance::Logout()
+{
+	AuthToken.Empty();
+	LoggedInUsername.Empty();
+	bIsLoggedIn = false;
+
+}

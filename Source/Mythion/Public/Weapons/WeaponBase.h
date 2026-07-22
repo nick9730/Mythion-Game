@@ -46,15 +46,24 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	FGameplayTag DamageTypeTag;
 
-	UFUNCTION(Server, Reliable)
-	void Server_ApplyDamage(AActor* HitActor);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	float WeaponReach = 70.f;
+
+	TArray<AActor*> AlreadyHitActorsServer;
+
+	bool bIsScanning = false;
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_SendGameplayEvent(AActor* InTarget, float InDamage, FGameplayTag InDamageTag, FHitResult InHitResult);
 
 protected:
 	virtual void BeginPlay() override;
 
 private:
 	void PerformWeaponTrace();
-	void ApplyDamage(AActor* HitActor);
+
+
+
 
 	UFUNCTION()
 	void OnRep_WeaponMesh();
@@ -63,7 +72,7 @@ private:
 	TObjectPtr<UStaticMesh> WeaponMeshToUse;
 
 	TArray<AActor*> AlreadyHitActors;
-	bool bIsScanning = false;
+
 };
 
 

@@ -10,8 +10,7 @@ enum class EItemType : uint8
 {
     Weapon,
     Armor,
-    Consumable,
-    Misc
+   Inventory,
 };
 
 UENUM(BlueprintType)
@@ -32,3 +31,5 @@ enum class EItemStats : uint8
 	ArmorBuff,
 	MagicResBuff,
 };
+
+

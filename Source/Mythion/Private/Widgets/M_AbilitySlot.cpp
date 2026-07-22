@@ -27,8 +27,7 @@ void UM_AbilitySlot::SetAbility(FGameplayTag Tag, FGameplayTag Cooldown, UTextur
 void UM_AbilitySlot::UpdateCooldown()
 {
 
-
-    if (!IsValid(BoundASC) || !CooldownTag.IsValid()) return;
+        if (!IsValid(BoundASC) || !CooldownTag.IsValid()) return;
 
 
     FGameplayEffectQuery Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(
@@ -36,6 +35,7 @@ void UM_AbilitySlot::UpdateCooldown()
     );
 
     TArray<TPair<float, float>> Times = BoundASC->GetActiveEffectsTimeRemainingAndDuration(Query);
+
 
     
     if (Times.Num() > 0 && Times[0].Value > 0.f)
@@ -61,5 +61,25 @@ void UM_AbilitySlot::UpdateCooldown()
 void UM_AbilitySlot::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
     Super::NativeTick(MyGeometry, InDeltaTime);
+   
     UpdateCooldown();
+}
+
+void UM_AbilitySlot::NativeConstruct()
+{
+	Super::NativeConstruct();
+    GetWorld()->GetTimerManager().SetTimer(
+        CooldownUpdateTimerHandle,
+        this,
+        &UM_AbilitySlot::UpdateCooldown,
+        0.1f,
+        true
+    );
+
+}
+
+void UM_AbilitySlot::NativeDestruct()
+{
+    Super::NativeDestruct();
+	GetWorld()->GetTimerManager().ClearTimer(CooldownUpdateTimerHandle);
 }

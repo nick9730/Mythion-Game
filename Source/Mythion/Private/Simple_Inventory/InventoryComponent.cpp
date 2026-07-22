@@ -11,9 +11,36 @@ UInventoryComponent::UInventoryComponent()
 {
     SetIsReplicatedByDefault(true);
     Items.SetNum(32);
+    
 
 }
 
+
+
+void UInventoryComponent::Server_AddWeaponSlot_Implementation(FItemData Item)
+{
+    if (!Item.IsValid()) return;
+    if (Item.ItemType != EItemType::Weapon) return;
+
+    WeaponSlot = Item;
+    OnWeaponEquipped.Broadcast(Item);
+    OnInventoryChanged.Broadcast();
+}
+void UInventoryComponent::Server_AddArmorSlot_Implementation(FItemData Item)
+{
+    if (!Item.IsValid()) return;
+    if (Item.ItemType != EItemType::Armor) return;
+
+    ArmorSlot = Item;
+    OnWeaponEquipped.Broadcast(Item);
+    OnInventoryChanged.Broadcast();
+}
+void UInventoryComponent::Server_RemoveArmorSlot_Implementation()
+{
+    if (!ArmorSlot.IsValid()) return;
+    ArmorSlot = FItemData();
+    OnInventoryChanged.Broadcast();
+}
 
 void UInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -51,6 +78,7 @@ void UInventoryComponent::Server_AddItem_Implementation(FItemData Item)
         }
     }
 
+    /*
     APlayerCharacter* Char = Cast<APlayerCharacter>(GetOwner());
     if (IsValid(Char))
     {
@@ -58,6 +86,7 @@ void UInventoryComponent::Server_AddItem_Implementation(FItemData Item)
         if (IsValid(PC))
             PC->Client_OnInventoryFull();
     }
+    */
 }
 
 void UInventoryComponent::Server_RemoveItem_Implementation(int32 SlotIndex)
@@ -65,27 +94,50 @@ void UInventoryComponent::Server_RemoveItem_Implementation(int32 SlotIndex)
     if (!Items.IsValidIndex(SlotIndex)) return;
     Items[SlotIndex] = FItemData();
     OnInventoryChanged.Broadcast();
+
+
 }
-
-void UInventoryComponent::Server_EquipItem_Implementation(int32 SlotIndex)
+void UInventoryComponent::Server_RemoveWeaponSlot_Implementation()
 {
-    if (!Items.IsValidIndex(SlotIndex)) return;
+    if (!WeaponSlot.IsValid()) return;
+    WeaponSlot = FItemData();
+    OnInventoryChanged.Broadcast();
+}
+void UInventoryComponent::Server_EquipItem_Implementation(FItemData Item)
+{
 
-    FItemData Item = Items[SlotIndex];
     if (!Item.IsValid()) return;
 
     if (Item.ItemType == EItemType::Weapon)
-    {
+    { 
         WeaponSlot = Item;
+        OnWeaponEquipped.Broadcast(Item);
+        OnInventoryChanged.Broadcast();
     }
     else if (Item.ItemType == EItemType::Armor)
     {
         ArmorSlot = Item;
+        OnWeaponEquipped.Broadcast(Item);
+        OnInventoryChanged.Broadcast();
     }
 
-    Items[SlotIndex] = FItemData();
     OnInventoryChanged.Broadcast();
 }
+
+bool UInventoryComponent::HasSpace(FItemData Item) const
+{
+ 
+        for (const FItemData& Slot : Items)
+        {
+            if (!Slot.IsValid()) return true;
+            if (Slot.ItemID == Item.ItemID && Slot.Quantity < Slot.MaxStackSize) return true;
+        }
+		return false;
+}
+
+
+
+
 
 void UInventoryComponent::OnRep_Inventory()
 {

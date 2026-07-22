@@ -2,11 +2,3 @@
 
 
 #include "Characters/Enemies/EnemyTypes.h"
-
-EnemyTypes::EnemyTypes()
-{
-}
-
-EnemyTypes::~EnemyTypes()
-{
-}

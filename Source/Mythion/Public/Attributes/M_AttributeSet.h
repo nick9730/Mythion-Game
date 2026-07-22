@@ -28,6 +28,7 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
+	virtual void PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue, float NewValue)  override;
 	virtual void PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const override;
 
 	UPROPERTY(BlueprintReadOnly)
@@ -84,7 +85,14 @@ public:
 	FGameplayAttributeData Coins;
 	ATTRIBUTE_ACCESSORS(UM_AttributeSet, Coins);
 
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Energy)
+	FGameplayAttributeData Energy;
+	ATTRIBUTE_ACCESSORS(UM_AttributeSet, Energy);
 
+
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_MaxEnergy)
+	FGameplayAttributeData MaxEnergy;
+	ATTRIBUTE_ACCESSORS(UM_AttributeSet, MaxEnergy);
 
 
 	FActiveGameplayEffectHandle XpMaxEffectHandle;
@@ -111,6 +119,9 @@ private:
 	UFUNCTION() void OnRep_XpMax(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_Level(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_Coins(const FGameplayAttributeData& OldValue);
+	UFUNCTION() void OnRep_Energy(const FGameplayAttributeData& OldValue);
+	UFUNCTION() void OnRep_MaxEnergy(const FGameplayAttributeData& OldValue);
+
 
 	bool bAttributesInitialized = false;
 };

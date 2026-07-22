@@ -22,6 +22,9 @@ public:
     UPROPERTY(meta = (BindWidget))
     class UImage* ItemIcon;
 
+    UPROPERTY(EditAnywhere, Category = "IdleIcon")
+    class UTexture2D* ItemIconIdle;
+
     UPROPERTY(meta = (BindWidget))
     class UTextBlock* QuantityText;
 
@@ -47,11 +50,22 @@ public:
     void SetItem(const FItemData& Item, int32 Index);
     void ClearSlot();
 
+    UFUNCTION()
+	void OpenQuantityWidget(FVector2D DesiredPosition);
+
+    UPROPERTY(EditDefaultsOnly, Category = "HoverInfos")
+    TSubclassOf<class UM_HoverInfosItems> HoverInfosWidgetClass;
+
+    UPROPERTY()
+    class UM_HoverInfosItems* HoverInfosWidgetInstance;
+
 protected:
     virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
     virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
     virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
     virtual void NativeOnDragCancelled(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+    virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+    virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
     virtual FReply NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
 

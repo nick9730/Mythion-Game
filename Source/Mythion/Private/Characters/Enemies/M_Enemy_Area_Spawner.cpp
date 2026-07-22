@@ -10,7 +10,7 @@
 
 AM_Enemy_Area_Spawner::AM_Enemy_Area_Spawner()
 {
-	PrimaryActorTick.bCanEverTick = false;
+    PrimaryActorTick.bCanEverTick = true;
 
 	SpawnArea = CreateDefaultSubobject<UBoxComponent>(TEXT("SpawnArea"));
 	RootComponent = SpawnArea;
@@ -29,6 +29,15 @@ void AM_Enemy_Area_Spawner::BeginPlay()
 	
 }
 
+void AM_Enemy_Area_Spawner::Tick(float DeltaTime)
+{
+    
+        Super::Tick(DeltaTime);
+
+      
+    
+}
+
 FVector AM_Enemy_Area_Spawner::GetRandomPointInBox() const
 {
 	FVector Center = SpawnArea->GetComponentLocation();
@@ -36,6 +45,25 @@ FVector AM_Enemy_Area_Spawner::GetRandomPointInBox() const
 
 	return UKismetMathLibrary::RandomPointInBoundingBox(Center, Extent);
 	
+}
+
+bool AM_Enemy_Area_Spawner::IsLocationInsideBox(const FVector& PlayerLocation) const
+{
+    FVector BoxOrigin = SpawnArea->GetComponentLocation();
+    FVector BoxExtent = SpawnArea->GetScaledBoxExtent();
+
+   
+    return FMath::Abs(PlayerLocation.X - BoxOrigin.X) <= BoxExtent.X &&
+        FMath::Abs(PlayerLocation.Y - BoxOrigin.Y) <= BoxExtent.Y;
+}
+
+FVector AM_Enemy_Area_Spawner::GetSafeSpawnLocation(const FVector& PlayerLocation) const
+{
+    FVector BoxOrigin = SpawnArea->GetComponentLocation();
+    FVector BoxExtent = SpawnArea->GetScaledBoxExtent();
+    FVector Direction = (PlayerLocation - BoxOrigin).GetSafeNormal();
+	FVector SafeLocation = BoxOrigin + Direction * (BoxExtent.Size() + PlayerCharacterSpawnRadius);
+	return  SafeLocation;
 }
 
 void AM_Enemy_Area_Spawner::SpawnEnemies()
@@ -54,11 +82,18 @@ void AM_Enemy_Area_Spawner::SpawnEnemies()
 
             FActorSpawnParameters SpawnParams;
             SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
-            GetWorld()->SpawnActor<AActor>(EnemyClass, SpawnLocation, SpawnRotation, SpawnParams);
+			
+         //   GetWorld()->SpawnActor<AActor>(EnemyClass, SpawnLocation, SpawnRotation, SpawnParams);
+            AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(EnemyClass, SpawnLocation, SpawnRotation, SpawnParams);
+            AEnemy* SpawnedEnemy = Cast<AEnemy>(SpawnedActor);
+            if (IsValid(SpawnedEnemy))
+                SpawnedEnemy->OwningSpawner = this;
         }
     }
 }
+
+
+
 
 
 

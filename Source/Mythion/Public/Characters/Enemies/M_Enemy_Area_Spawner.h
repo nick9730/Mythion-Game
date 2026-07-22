@@ -22,16 +22,23 @@ public:
 
 	FVector GetRandomPointInBox() const;
 
+	bool IsLocationInsideBox(const FVector& PlayerLocation) const;
+	FVector GetSafeSpawnLocation(const FVector& PlayerLocation) const;
+
+	UPROPERTY(VisibleAnywhere, Category = "Spawning")
+	UBoxComponent* SpawnArea;
+
+
 protected:
 	
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(EditAnywhere, Category = "Spawning")
 	TMap<TSubclassOf<AEnemy>, int32> EnemiesToSpawn;
 
-
-	UPROPERTY(VisibleAnywhere, Category = "Spawning")
-	UBoxComponent* SpawnArea;
+	UPROPERTY(EditAnywhere, Category = "Spawning PlayerCharacter")
+	float PlayerCharacterSpawnRadius = 200.f;
 
 	 
 	void SpawnEnemies(); 

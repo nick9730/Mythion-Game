@@ -46,6 +46,8 @@ public:
     void InitializeBar(UAbilitySystemComponent* ASC, const TArray<FGrantAbilitiesDataByLevel>& Abilities, const TArray<FString>& Keybinds);
 
 
+    FTimerHandle BindPawnTimerHandle;
+
 
 protected:
     virtual void NativeConstruct() override;

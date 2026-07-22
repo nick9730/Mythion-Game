@@ -18,12 +18,12 @@ ABaseCharacter::ABaseCharacter()
 	bReplicates = true;
 
 	// Create ASC
-	AbilitySystemComponent = CreateDefaultSubobject<UM_AbilitySystemComponent>(TEXT("AbilitySystemComponent"));
-	AbilitySystemComponent->SetIsReplicated(true);
-	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
+	//AbilitySystemComponent = CreateDefaultSubobject<UM_AbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	//AbilitySystemComponent->SetIsReplicated(true);
+	//AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
 	// Create AttributeSet
-	AttributeSet = CreateDefaultSubobject<UM_AttributeSet>(TEXT("AttributeSet"));
+	//AttributeSet = CreateDefaultSubobject<UM_AttributeSet>(TEXT("AttributeSet"));
 
 	// Capsule
 	GetCapsuleComponent()->InitCapsuleSize(35.f, 96.f);
@@ -38,15 +38,16 @@ ABaseCharacter::ABaseCharacter()
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 500.f, 0.f);
 	GetCharacterMovement()->JumpZVelocity = 500.f;
 	GetCharacterMovement()->AirControl = 0.35f;
-	GetCharacterMovement()->MaxWalkSpeed = 500.f;
+	GetCharacterMovement()->MaxWalkSpeed = 300;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.f;
 }
-
+/*
 UAbilitySystemComponent* ABaseCharacter::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
 }
+*/
 
 void ABaseCharacter::BeginPlay()
 {
@@ -58,6 +59,7 @@ void ABaseCharacter::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 
 
+	/*
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
@@ -71,16 +73,20 @@ void ABaseCharacter::PossessedBy(AController* NewController)
 			UM_AttributeSet::GetHealthAttribute())
 			.AddUObject(this, &ABaseCharacter::OnHealthChanged);
 	}
+	*/
 }
 
 void ABaseCharacter::OnRep_PlayerState()
 {
-	Super::OnRep_PlayerState();
+	
+	/*
 
+	Super::OnRep_PlayerState();
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
 	}
+	*/
 }
 
 void ABaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -88,15 +94,18 @@ void ABaseCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ABaseCharacter, bAlive);
 	DOREPLIFETIME(ABaseCharacter, EquippedWeapon);
+	DOREPLIFETIME(ABaseCharacter, EquippedArmor);
+
 }
 
 void ABaseCharacter::InitializeAttributes(TSubclassOf<UGameplayEffect> InitEffect) const
 {
+	/*
 	if (!IsValid(InitEffect) || !IsValid(AbilitySystemComponent)) return;
-
 	FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
 	FGameplayEffectSpecHandle Spec = AbilitySystemComponent->MakeOutgoingSpec(InitEffect, 1.f, Context);
 	AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+	*/
 }
 
 void ABaseCharacter::OnHealthChanged(const FOnAttributeChangeData& Data)
@@ -111,15 +120,10 @@ void ABaseCharacter::HandleDeath()
 {
 	bAlive = false;
 
-	if (GetCharacterMovement())
-	{
-		GetCharacterMovement()->StopMovementImmediately();
-		GetCharacterMovement()->DisableMovement();
-	}
 	if (HasAuthority())	
 	{
-		UE_LOG(LogTemp, Warning, TEXT("EquippedWeapon valid: %s"),
-			IsValid(EquippedWeapon) ? TEXT("YES") : TEXT("NO"));
+
+		
 		if (IsValid(EquippedWeapon))
 		{
 			
@@ -133,9 +137,7 @@ void ABaseCharacter::HandleDeath()
 
 void ABaseCharacter::SpawnWeapon()
 {
-	if (WeaponData->Weapon.Num() == 0) {
-		UE_LOG(LogTemp, Warning, TEXT("WeaponData Asset has no weapon entries!"));
-	}
+	
 	TArray<FWeaponDetails> WeaponDetails = WeaponData->Weapon;
 
 	for (int i = 0; i < WeaponDetails.Num(); i++) {
@@ -160,14 +162,14 @@ void ABaseCharacter::SpawnWeapon()
 				FAttachmentTransformRules AttachRules(EAttachmentRule::SnapToTarget, true);
 				SpawnedWeapon->AttachToComponent(GetMesh(), AttachRules, SocketName);
 				SpawnedWeapon->WeaponDamage = WeaponDetails[i].TrueDamage;
-				SpawnedWeapon->DamageEffectClass = WeaponDetails[i].DamageEffectClass;
 				SpawnedWeapon->SetWeaponMesh(WeaponDetails[i].WeaponMesh);
-				SpawnedWeapon->DamageTypeTag = WeaponDetails[i].DamageTypeTag;
 
 			}
 			if (SpawnedWeapon)
 			{
 				EquippedWeapon = SpawnedWeapon;
+				EquippedArmor = SpawnedWeapon;
+				
 			}
 		}
 	}

@@ -12,6 +12,11 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryFull);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponEquipped, FItemData, WeaponData);
+
+
+
+
 
 class UM_Item_Details;
 class AM_PlayerController;
@@ -28,24 +33,42 @@ public:
     UInventoryComponent();
 
     UPROPERTY(ReplicatedUsing = OnRep_Inventory, BlueprintReadOnly)
-   TArray<FItemData> Items;
+     TArray<FItemData> Items;
 
     UPROPERTY(ReplicatedUsing = OnRep_WeaponSlot, BlueprintReadOnly)
     FItemData WeaponSlot;
 
     UPROPERTY(ReplicatedUsing = OnRep_ArmorSlot, BlueprintReadOnly)
-   FItemData ArmorSlot;
+    FItemData ArmorSlot;
+
+
+
     UPROPERTY(BlueprintAssignable)
     FOnInventoryChanged OnInventoryChanged;
 
     UFUNCTION(Server, Reliable)
     void Server_AddItem(FItemData Item);
 
+  
+
     UFUNCTION(Server, Reliable)
     void Server_RemoveItem(int32 SlotIndex);
 
     UFUNCTION(Server, Reliable)
-    void Server_EquipItem(int32 SlotIndex);
+    void Server_EquipItem(FItemData Item);
+
+    UFUNCTION(Server, Reliable)
+    void Server_AddWeaponSlot(FItemData Item);
+    
+    UFUNCTION(Server, Reliable)
+    void Server_RemoveWeaponSlot();
+
+
+    UFUNCTION(Server, Reliable)
+    void Server_AddArmorSlot(FItemData Item);
+
+    UFUNCTION(Server, Reliable)
+    void Server_RemoveArmorSlot();
 
     void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -55,6 +78,15 @@ public:
     UPROPERTY()
     AM_PlayerController* OwnerController;
 
+    UPROPERTY(BlueprintAssignable)
+    FOnWeaponEquipped OnWeaponEquipped;
+
+
+
+    UFUNCTION()
+    bool HasSpace(FItemData Item) const;
+
+   
 private:
     UFUNCTION()
     void OnRep_Inventory();

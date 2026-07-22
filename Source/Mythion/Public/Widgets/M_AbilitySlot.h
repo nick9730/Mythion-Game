@@ -20,6 +20,7 @@ class UTextBlock;
 struct FGameplayTag;
 class UGameplayAbility;
 struct FGameplayEventData;
+struct FTimerHandle;
 
 UCLASS()
 class MYTHION_API UM_AbilitySlot : public UUserWidget
@@ -49,8 +50,15 @@ public:
     UAbilitySystemComponent* BoundASC;
 
     void SetAbility(FGameplayTag Tag, FGameplayTag Cooldown, UTexture2D* Icon, FString Keybind, UAbilitySystemComponent* ASC);
+
+    UFUNCTION(BlueprintCallable)
     void UpdateCooldown();
+
+	FTimerHandle CooldownUpdateTimerHandle;
+
 
 protected:
     virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+    virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 };

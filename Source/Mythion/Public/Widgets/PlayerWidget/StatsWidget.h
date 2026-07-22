@@ -10,6 +10,10 @@ class UTextBlock;
 class UAbilitySystemComponent;
 struct FGameplayEventData;
 struct FGameplayTag;
+class UCanvasPanel;
+class APlayerCharacter;
+class UM_ChatWidget;
+class UM_QuestsInfos;
 
 UCLASS()
 class MYTHION_API UStatsWidget : public UUserWidget
@@ -18,17 +22,26 @@ class MYTHION_API UStatsWidget : public UUserWidget
 
 public:
     void InitializeWidget(UAbilitySystemComponent* ASC);
+    UPROPERTY(meta = (BindWidget))
+    UM_QuestsInfos* QuestInfoWidget;
     
 
 protected:
     virtual void NativeDestruct() override;
 	virtual void NativeConstruct() override;
+   virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
     UPROPERTY(meta = (BindWidget))
     TObjectPtr<UProgressBar> HealthBar;
 
     UPROPERTY(meta = (BindWidget))
     TObjectPtr<UProgressBar> ManaBar;
+
+    UPROPERTY(meta = (BindWidget))
+    TObjectPtr<UProgressBar> EnergyBar;
+
+    UPROPERTY(meta = (BindWidget))
+    TObjectPtr<UTextBlock> EnergyText;
 
     UPROPERTY(meta = (BindWidget))
     TObjectPtr<UProgressBar> XPBar;
@@ -45,6 +58,27 @@ protected:
     UPROPERTY(meta = (BindWidget))
     TObjectPtr<UTextBlock> XPText;
 
+    UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UCanvasPanel> EnemyDotsContainer;
+
+
+
+    UPROPERTY(meta = (BindWidget),BlueprintReadOnly)
+    UM_ChatWidget* ChatWidget;
+
+    UFUNCTION(BlueprintCallable)
+    void FocusChatInput();
+
+    UFUNCTION(BlueprintCallable)
+    void UnFocusChatInput();
+
+    FTimerHandle BindASCTimerHandle;
+
+    UFUNCTION()
+    void TryBindASC();
+
+    FVector2d GetMiniMapPosition(APlayerCharacter* Player, AActor* Target, float MinimapSize, float CaptureRange);
+
 private:
     void BindToASC(UAbilitySystemComponent* ASC);
 
@@ -56,10 +90,15 @@ private:
     void OnXPChanged(const FOnAttributeChangeData& Data);
     void OnXPMaxChanged(const FOnAttributeChangeData& Data);
     void OnLevelChanged(const FOnAttributeChangeData& Data);
+    void OnEnergyChanged(const FOnAttributeChangeData& Data);
+    void OnMaxEnergyChanged(const FOnAttributeChangeData& Data);
+
 
     void UpdateHealthBar();
     void UpdateManaBar();
     void UpdateXPBar();
+    void UpdateEnergyBar();
+
 
     UPROPERTY()
     TObjectPtr<UAbilitySystemComponent> BoundASC;
@@ -71,6 +110,9 @@ private:
     FDelegateHandle XPHandle;
     FDelegateHandle XPMaxHandle;
     FDelegateHandle LevelHandle;
+    FDelegateHandle EnergyHandle;
+    FDelegateHandle MaxEnergyHandle;
+
 
 
 
@@ -82,4 +124,7 @@ private:
     float CurrentXP = 0.f;
     float CurrentXPMax = 1.f;
     float CurrentLevel = 1.f;
+    float CurrentEnergy = 0.f;
+    float CurrentMaxEnergy = 1.f;
+
 };

@@ -13,6 +13,8 @@
 
 class USkeletalMesh;
 class AnimationAsset;
+struct FGameplayTag;
+class UAnimMontage;
 
 
 
@@ -23,16 +25,18 @@ struct FEnemyStruct
 	GENERATED_BODY()
 public:
 
-	UPROPERTY(EditAnywhere,  Category = "Stats")
-	float MaxHealth;
-	UPROPERTY(EditAnywhere ,Category = "Stats")
-	float Health;
-	UPROPERTY(EditAnywhere, Category = "Stats")
-	float Mana;
+
+	UPROPERTY(EditAnywhere, Category = "ID")
+	FGameplayTag EnemyTag;
+
 	UPROPERTY(EditAnywhere, Category = "Visuals")
 	TSoftObjectPtr<USkeletalMesh> EnemyMesh;
+
 	UPROPERTY(EditAnywhere, Category = "Visuals")
 	TSubclassOf<UAnimInstance> EnemyAnimation;
+
+	UPROPERTY(EditAnywhere,Category="Visuals")
+	UAnimMontage* DeathMontage;
 
 	UPROPERTY(EditAnywhere, Category = "Visuals")
 	FVector MeshOffsetLocation = FVector(0.f, 0.f, -90.f);

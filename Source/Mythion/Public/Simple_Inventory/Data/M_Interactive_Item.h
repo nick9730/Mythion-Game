@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Simple_Inventory/M_InventoryInterface.h"
+#include "Simple_Inventory/Data/InventoryData.h"
 #include "M_Interactive_Item.generated.h"
 
 
@@ -23,17 +24,27 @@ class MYTHION_API AM_Interactive_Item : public AActor, public IM_InventoryInterf
 public:
     AM_Interactive_Item();
 
+    virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
+
+    UFUNCTION()
+    void UpdateMesh();
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     UStaticMeshComponent* Mesh;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly)
     USphereComponent* InteractSphere;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    UPROPERTY(ReplicatedUsing = OnRep_ItemData, EditAnywhere, BlueprintReadOnly)
     UM_Item_Details* ItemData;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    int32 Quantity = 32;
+    UFUNCTION()
+    void OnRep_ItemData();
+
+    UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly)
+
+    int32 Quantity = 32; 
+   
 
 
 
@@ -77,4 +88,11 @@ protected:
     FVector StartLocation;
     float TimeElapsed = 0.f;
    
+
+    bool CantEquipWeapon(AActor* PlayerChar);
+	bool CheckTheSpaceOfInventory(AActor* PlayerChar);
+    bool HasRequiredClassTag(AActor* PlayerChar, FItemData Item);
+
+
+
 };
