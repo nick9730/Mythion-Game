@@ -33,3 +33,9 @@ void UM_QuestsInfos::UpdateQuest(FQuestData Quest, int32 CurrentKills)
         QuestProgressText->SetText(FText::FromString(
             FString::Printf(TEXT("Kill %d/%d %s"), CurrentKills, Quest.RequiredKills, *EnemyName)));
 }
+
+void UM_QuestsInfos::NativeConstruct()
+{
+    Super::NativeConstruct();
+    SetVisibility(ESlateVisibility::Collapsed);   
+}

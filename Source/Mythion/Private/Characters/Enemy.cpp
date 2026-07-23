@@ -211,6 +211,7 @@ void AEnemy::HandleDeath()
 	{
 		Multicast_HideWeapon(); 
 		Multicast_PlayDeathAnimation();
+		Multicast_DisableCollisionOnDeath();
 
 	
 		if (IsValid(EquippedWeapon))
@@ -220,9 +221,7 @@ void AEnemy::HandleDeath()
 		}
 	}
 
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCharacterMovement()->DisableMovement();
-	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SetLifeSpan(3.f);
 	if (HasAuthority())
 	{
@@ -282,4 +281,10 @@ void AEnemy::Multicast_HideWeapon_Implementation()
 {
 	if (IsValid(EquippedWeapon))
 		EquippedWeapon->SetActorHiddenInGame(true);
+}
+
+void AEnemy::Multicast_DisableCollisionOnDeath_Implementation()
+{
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }

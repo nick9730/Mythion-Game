@@ -110,7 +110,8 @@ public:
   UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist")
   TArray<TSubclassOf<UGameplayAbility>> AbilityClasses;
 
-
+  UFUNCTION(NetMulticast, Reliable)
+  void Multicast_DisableCollisionOnDeath();
 
   UPROPERTY(EditAnywhere,BlueprintReadOnly, Category = "Enemy Setup Checklist ")
   TObjectPtr<UAnimMontage> DeathMontage;

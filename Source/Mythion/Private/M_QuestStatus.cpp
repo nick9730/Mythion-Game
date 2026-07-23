@@ -5,7 +5,8 @@
 #include "Components/Image.h"
 #include "Engine/Texture2D.h"
 #include "DataAsset/M_QuestDataAsset.h"
-
+#include "Components/WidgetComponent.h"
+#include "AM_QuestNPC.h"
 
 void UM_QuestStatus::SetQuestStatusImage(UTexture2D* NewTexture)
 {
@@ -40,6 +41,14 @@ void UM_QuestStatus::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+
+	if (UWidgetComponent* OwningComponent = Cast<UWidgetComponent>(GetOuter()))
+	{
+		if (AAM_QuestNPC* NPC = Cast<AAM_QuestNPC>(OwningComponent->GetOwner()))
+		{
+			CurrentStatus = NPC->CurrentQuestStatus;
+		}
+	}
 
 	UpdateQuestStatusImage(CurrentStatus);
 

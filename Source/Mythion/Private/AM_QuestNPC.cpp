@@ -101,12 +101,13 @@ void AAM_QuestNPC::Interact(AActor* Caller)
 void AAM_QuestNPC::UpdateQuestStatusIcon(EQuestStatus Status)
 {
    
+    CurrentQuestStatus = Status;
 
    QuestStatusStatusIcon = Cast<UM_QuestStatus>(QuestStatusIcon->GetUserWidgetObject());
 
     if (!IsValid(QuestStatusStatusIcon)) return;
 
-     QuestStatusStatusIcon->UpdateQuestStatusImage(Status);
+     QuestStatusStatusIcon->UpdateQuestStatusImage(CurrentQuestStatus);
 }
 void AAM_QuestNPC::OnFocused()
 {

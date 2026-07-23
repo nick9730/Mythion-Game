@@ -34,6 +34,7 @@ void UM_Options::NativeConstruct()
 
     if (GraphicsQualityDropdown)
     {
+        GraphicsQualityDropdown->ClearOptions();
         GraphicsQualityDropdown->OnSelectionChanged.AddDynamic(this, &UM_Options::OnGraphicsQualityChanged);
         GraphicsQualityDropdown->AddOption(TEXT("Low"));
         GraphicsQualityDropdown->AddOption(TEXT("Medium"));
@@ -122,7 +123,6 @@ void UM_Options::OnGraphicsQualityChanged(FString SelectedItem, ESelectInfo::Typ
     if (!SettingsOfTheGame) return;
 
     int32 QualityLevel = 2; 
-    GraphicsQualityDropdown->ClearOptions();   
     if (SelectedItem == "Low") QualityLevel = 0;
     else if (SelectedItem == "Medium") QualityLevel = 1;
     else if (SelectedItem == "High") QualityLevel = 2;

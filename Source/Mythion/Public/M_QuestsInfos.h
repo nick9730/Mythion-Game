@@ -44,8 +44,7 @@ public:
     void OpenQuestInfo();
 	void CloseQuestInfo();
 
-
-
+    virtual void NativeConstruct() override;
 
 
 private:

@@ -46,8 +46,13 @@ public:
 	FQuestData CurrentQuestData;
 
 
+	UPROPERTY()
+	EQuestStatus CurrentQuestStatus = EQuestStatus::NotTaken;
+
 	UPROPERTY(EditAnywhere, Category = "Highlight")
 	UMaterialInterface* HighlightMaterial;
+
+	
 
 	UPROPERTY()
 	UMaterialInterface* OriginalMaterial;
