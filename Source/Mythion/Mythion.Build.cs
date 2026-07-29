@@ -7,36 +7,36 @@ public class Mythion : ModuleRules
 	public Mythion(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-		PublicDependencyModuleNames.AddRange(new string[] { 
+
+		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core",
 			"CoreUObject",
 			"Engine",
-			"InputCore", 
+			"InputCore",
 			"EnhancedInput",
 			"GameplayTags",
-            "GameplayAbilities",
+			"GameplayAbilities",
 			"AIModule",
 			"NavigationSystem",
 			"UMG",
 			"GameplayTasks",
 			"NetCore",
-            "StructUtils",
+			"StructUtils",
 			"Slate",
 			"SlateCore",
 			"HTTP",
 			"Json",
 			"JsonUtilities",
-             "WebSockets"
+			 "WebSockets"
 
 
-        });
+		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		PrivateDependencyModuleNames.AddRange(new string[] { });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-		
+
 		// Uncomment if you are using online features
 		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
 

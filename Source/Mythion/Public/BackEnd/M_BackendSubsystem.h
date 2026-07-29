@@ -3,29 +3,28 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Subsystems/GameInstanceSubsystem.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
+#include "Subsystems/GameInstanceSubsystem.h"
+
 #include "M_BackendSubsystem.generated.h"
-
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAuthComplete, bool, bSuccess, const FString&, Message);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAuthComplete, bool, bSuccess, const FString &, Message);
 
 /**
- * 
+ *
  */
 UCLASS()
 class MYTHION_API UM_BackendSubsystem : public UGameInstanceSubsystem
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-public:
-	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
-	virtual void Deinitialize() override;
+  public:
+    virtual void Initialize(FSubsystemCollectionBase &Collection) override;
+    virtual void Deinitialize() override;
 
     UPROPERTY(BlueprintReadWrite, Category = "Mythion | Backend")
-    FString ServerURL= TEXT("http://10.86.209.168:3000");
-     
+    FString ServerURL = TEXT("http://10.83.12.168:3000");
+
     // Auth data
     UPROPERTY(BlueprintReadOnly, Category = "Mythion | Backend")
     FString AuthToken;
@@ -37,7 +36,7 @@ public:
     bool bIsLoggedIn = false;
 
     UPROPERTY(BlueprintReadOnly, Category = "Mythion | Backend")
-	bool isNewPlayer = false;
+    bool isNewPlayer = false;
 
     // Delegates - Blueprint can bind to these
     UPROPERTY(BlueprintAssignable, Category = "Mythion | Backend")
@@ -47,20 +46,16 @@ public:
     FOnAuthComplete OnRegisterComplete;
 
     UFUNCTION(BlueprintCallable, Category = "Mythion | Backend")
-    void Login(const FString& Username, const FString& Password);
+    void Login(const FString &Username, const FString &Password);
 
     UFUNCTION(BlueprintCallable, Category = "Mythion | Backend")
-    void Register(const FString& Username, const FString& Email, const FString& Password,const FString& ConfirmPassword);
+    void Register(const FString &Username, const FString &Email, const FString &Password,
+                  const FString &ConfirmPassword);
 
     UFUNCTION(BlueprintCallable, Category = "Mythion | Backend")
     void Logout();
-	
 
-
-
-
-
-private:
+  private:
     void OnLoginResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
     void OnRegisterResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
     void OnLogoutResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);

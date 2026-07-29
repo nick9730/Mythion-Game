@@ -1,5 +1,9 @@
 # Visual Studio 2015 user specific files
 .vs/
+Source/Mythion/.vs/
+Source/Mythion/.vscode/
+*.ipch
+*.vsidx
 # Prerequisites
 *.d
 # Compiled Object files

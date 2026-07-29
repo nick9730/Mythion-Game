@@ -2,14 +2,13 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "AIController.h"
-#include "Perception/AISenseConfig_Sight.h"
-#include "Perception/AISenseConfig_Hearing.h"
+#include "CoreMinimal.h"
 #include "Perception/AISenseConfig_Damage.h"
+#include "Perception/AISenseConfig_Hearing.h"
+#include "Perception/AISenseConfig_Sight.h"
 
 #include "M_Enemy_Controller.generated.h"
-
 
 class UAISenseConfig_Sight;
 class UAISenseConfig_Hearing;
@@ -29,106 +28,91 @@ struct FAISenseCounter;
 UCLASS()
 class MYTHION_API AM_Enemy_Controller : public AAIController
 {
-	GENERATED_BODY()
-	
+    GENERATED_BODY()
 
-public:
-	AM_Enemy_Controller();
+  public:
+    AM_Enemy_Controller();
 
-protected:
-	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaTime) override;
-	virtual void OnPossess(APawn* InPawn) override;
+  protected:
+    virtual void BeginPlay() override;
+    virtual void Tick(float DeltaTime) override;
+    virtual void OnPossess(APawn *InPawn) override;
 
-	UPROPERTY(VisibleAnywhere,BlueprintReadOnly, Category = "AI")
-	UAIPerceptionComponent* EnemyPerceptionComponent;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
+    UAIPerceptionComponent *EnemyPerceptionComponent;
 
-	UFUNCTION()
-	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
+    UFUNCTION()
+    void OnTargetPerceptionUpdated(AActor *Actor, FAIStimulus Stimulus);
 
-	UFUNCTION()
-     void OnPerceptionUpdated(const TArray<AActor*>& UpdatedActors);
+    UFUNCTION()
+    void OnPerceptionUpdated(const TArray<AActor *> &UpdatedActors);
 
+    UFUNCTION()
+    void WhoIsTheClosestTarget(TArray<AActor *> Actors);
 
-	UFUNCTION()
-	void WhoIsTheClosestTarget(TArray<AActor*> Actors);
+    UPROPERTY()
+    AActor *ClosestTarget = nullptr;
 
+    UFUNCTION()
+    bool IsTargetDead(AActor *Actor);
 
-	UPROPERTY()
-	AActor* ClosestTarget= nullptr;
+    UFUNCTION()
+    bool IsNotValidTarget(AActor *Actor);
 
-	UFUNCTION()
-	bool IsTargetDead(AActor* Actor);
+    UPROPERTY()
+    APawn *EnemyCharacter;
 
-	UFUNCTION()
-	bool IsNotValidTarget(AActor* Actor);
+    UFUNCTION(BlueprintCallable)
+    void SetEnemyToPassive();
 
+    UFUNCTION()
+    void SetEnemyToAggresive(AActor *Target);
 
+    UFUNCTION()
+    void SetEnemyToInvestigate();
 
-	UPROPERTY()
-	APawn* EnemyCharacter;
+    UFUNCTION()
+    void SendEnemyToHomeLocation(AActor *Actor);
 
+    UFUNCTION()
+    void SetValueVector(FName BlackBoardKey, FVector TargetLocation);
 
-	UFUNCTION(BlueprintCallable)
-	void SetEnemyToPassive();
+    UFUNCTION()
+    void HandlePerceptionMelee(const TArray<AActor *> &PerceivedActors, FAIStimulus Stimulus, AActor *Player,
+                               AEnemy *Enemy, AM_PlayerController *PC);
 
-	UFUNCTION()
-	void SetEnemyToAggresive(AActor* Target);
+    UFUNCTION()
+    void HandlePerceptionMage(const TArray<AActor *> &PerceivedActors, FAIStimulus Stimulus, AActor *Player,
+                              AEnemy *Enemy, AM_PlayerController *PC);
 
-	UFUNCTION()
-	void SetEnemyToInvestigate();
+  private:
+    UAISenseConfig_Sight *SightConfig;
+    UAISenseConfig_Hearing *HearingConfig;
+    UAISenseConfig_Damage *DamageConfig;
 
+    UPROPERTY(EditDefaultsOnly, Category = "AI")
+    UBehaviorTree *BehaviorTree;
 
-	UFUNCTION()
-	void SendEnemyToHomeLocation(AActor* Actor);
+    FName TargetActorKey = FName("TargetActor");
 
+    UPROPERTY(EditDefaultsOnly, Category = "AI")
+    FName AttackTargetKeyName = FName("TargetActor");
 
-	UFUNCTION()
-	void SetValueVector(FName BlackBoardKey, FVector  TargetLocation);
+    UPROPERTY(EditAnywhere, Category = "Sight Settings")
+    float SightRadius;
 
+    UPROPERTY(EditAnywhere, Category = "Sight Settings")
+    float LoseSightRadius;
 
+    UPROPERTY(EditAnywhere, Category = "Sight Settings")
+    float PeripheralVisionAngleDegrees;
 
-	UFUNCTION()
-	void HandlePerceptionMelee(const TArray<AActor*>& PerceivedActors, FAIStimulus Stimulus, AActor* Player, AEnemy* Enemy);
+    UPROPERTY(EditAnywhere, Category = "Hear Settings")
+    float HearingRange;
 
-	UFUNCTION()
-	void HandlePerceptionMage(const TArray<AActor*>& PerceivedActors, FAIStimulus Stimulus, AActor* Player, AEnemy* Enemy);
+    FTimerHandle LoseSightTimer;
 
-
-
-private:
-
-	
-	 UAISenseConfig_Sight* SightConfig;
-	 UAISenseConfig_Hearing* HearingConfig;
-	 UAISenseConfig_Damage* DamageConfig;
-
-	 UPROPERTY(EditDefaultsOnly, Category = "AI")
-	 UBehaviorTree* BehaviorTree;
-
-	 FName TargetActorKey = FName("TargetActor");
-
-	 UPROPERTY(EditDefaultsOnly, Category = "AI")
-	 FName AttackTargetKeyName = FName("TargetActor");
-	 
-
-	 UPROPERTY(EditAnywhere, Category = "Sight Settings")
-	 float SightRadius;
-
-	 UPROPERTY(EditAnywhere, Category = "Sight Settings")
-	 float LoseSightRadius;
-
-
-	 UPROPERTY(EditAnywhere, Category = "Sight Settings")
-	 float PeripheralVisionAngleDegrees;
-
-	 
-	 UPROPERTY(EditAnywhere, Category = "Hear Settings")
-	 float HearingRange;
-
-	 FTimerHandle LoseSightTimer;
-
-	 //AI Movement
-	 UPROPERTY(EditAnywhere, Category = "AI")
-	 UBlackboardData* BlackboardAsset;
+    // AI Movement
+    UPROPERTY(EditAnywhere, Category = "AI")
+    UBlackboardData *BlackboardAsset;
 };
