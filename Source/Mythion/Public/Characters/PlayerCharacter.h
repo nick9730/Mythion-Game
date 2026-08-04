@@ -1,15 +1,14 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Characters/BaseCharacter.h"
-#include "GameplayEffectTypes.h"
-#include "DataAsset/CharacterClasses.h"
-#include "Engine/TextureRenderTarget2D.h"
 #include "Components/SceneCaptureComponent2D.h"
+#include "CoreMinimal.h"
+#include "DataAsset/CharacterClasses.h"
 #include "DataAsset/M_CommonAbilities.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "GameplayEffectTypes.h"
 #include "Simple_Inventory/Widgets/M_PreviewActorInventory.h"
 
 #include "PlayerCharacter.generated.h"
@@ -17,13 +16,13 @@
 USTRUCT(BlueprintType)
 struct FCommonAbilityEntry
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<UGameplayAbility> Ability;
+    UPROPERTY(EditAnywhere)
+    TSubclassOf<UGameplayAbility> Ability;
 
-	UPROPERTY(EditAnywhere)
-	int32 InputID;
+    UPROPERTY(EditAnywhere)
+    int32 InputID;
 };
 
 class USpringArmComponent;
@@ -33,255 +32,226 @@ class UCharacterClasses;
 struct FOnAttributeChangeData;
 struct FItemData;
 class UM_QuestComponent;
-class  UAbilitySystemComponent;
+class UAbilitySystemComponent;
 class UM_AttributeSet;
 class UWidgetComponent;
 class UM_CommonAbilities;
+class USoundBase;
+struct FGameplayTag;
 
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnASCInitialized, UAbilitySystemComponent*, ASC, UAttributeSet*, AS);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnASCInitialized, UAbilitySystemComponent *, ASC, UAttributeSet *, AS);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilityGranted, FGrantAbilitiesDataByLevel, AbilityEntry);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAbilityInitialized, FGrantAbilitiesDataByLevel, AbilityEntry);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLevelChanged, float, NewLevel);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPreviewReady, UTextureRenderTarget2D*, RT);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMiniMapReady, UTextureRenderTarget2D*, RenderTarget);
-
-
-
-
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPreviewReady, UTextureRenderTarget2D *, RT);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMiniMapReady, UTextureRenderTarget2D *, RenderTarget);
 
 UCLASS()
 class MYTHION_API APlayerCharacter : public ABaseCharacter, public IAbilitySystemInterface
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-public:
-	APlayerCharacter();
-	UAttributeSet* GetAttributeSet() const;
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	FORCEINLINE UCameraComponent* GetFollowCamera() const { return Camera; }
+  public:
+    APlayerCharacter();
+    UAttributeSet *GetAttributeSet() const;
+    virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty> &OutLifetimeProps) const override;
+    virtual UAbilitySystemComponent *GetAbilitySystemComponent() const override;
+    FORCEINLINE UCameraComponent *GetFollowCamera() const
+    {
+        return Camera;
+    }
 
+    // name
+    UPROPERTY(VisibleAnywhere, Category = "UI")
+    UWidgetComponent *NameplateComponent;
 
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    TSubclassOf<UUserWidget> NameplateWidgetClass;
 
-	//name
-	UPROPERTY(VisibleAnywhere, Category = "UI")
-	UWidgetComponent* NameplateComponent;
+    UPROPERTY(ReplicatedUsing = OnRep_PlayerName)
+    FString PlayerUsername;
 
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UUserWidget> NameplateWidgetClass;
+    UFUNCTION()
+    void OnRep_PlayerName();
 
-	UPROPERTY(ReplicatedUsing = OnRep_PlayerName)
-	FString PlayerUsername;
+    UPROPERTY(Replicated)
+    FVector DeathLocation;
 
-	UFUNCTION()
-	void OnRep_PlayerName();
-	
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS|Components")
+    TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 
-	UPROPERTY(Replicated)
-	FVector DeathLocation;
+    UPROPERTY(Transient)
+    TObjectPtr<const class UM_AttributeSet> AttributeSet;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS|Components")
-	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+     UFUNCTION()
+    void LevelUp(float NewLevel);
 
-	UPROPERTY(Transient)
-	TObjectPtr<const class UM_AttributeSet> AttributeSet;
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "GAS")
+    UAbilitySystemComponent *GetASC() const
+    {
+        return GetAbilitySystemComponent();
+    }
 
-	UFUNCTION()
-	void LevelUp(float NewLevel);
+    UPROPERTY(BlueprintAssignable)
+    FOnASCInitialized OnASCInitialized;
 
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "GAS")
-	UAbilitySystemComponent* GetASC() const { return GetAbilitySystemComponent(); }
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+    class UInventoryComponent *InventoryComponent;
 
-	UPROPERTY(BlueprintAssignable)
-	FOnASCInitialized OnASCInitialized;
+    UFUNCTION(Server, Reliable)
+    void Server_ApplyCharacterClass(FGameplayTag ClassTag);
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
-	class UInventoryComponent* InventoryComponent;
+    UFUNCTION(NetMulticast, Reliable)
+    void Multicast_ApplyCharacterClass(FGameplayTag ClassTag);
 
+    // Player State CharacterData
+    void ApplyCharacterClassData(TSoftObjectPtr<UCharacterClasses> ClassData, const FGameplayTag TagMatches);
 
-	UFUNCTION(Server, Reliable)
-	void Server_ApplyCharacterClass(FGameplayTag ClassTag);
+    UFUNCTION(Server, Reliable)
+    void Server_DestroyEquippedItems();
 
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_ApplyCharacterClass(FGameplayTag ClassTag);
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    TSubclassOf<UUserWidget> LoadingScreenClass;
 
-	//Player State CharacterData
-	void ApplyCharacterClassData(TSoftObjectPtr<UCharacterClasses> ClassData, const FGameplayTag TagMatches);
+    bool bASCInitialized = false;
 
-	UFUNCTION(Server, Reliable)
-	void Server_DestroyEquippedItems();
+    UPROPERTY()
+    UUserWidget *LoadingScreenWidget;
 
+    void SetupAttributes();
 
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UUserWidget> LoadingScreenClass;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities")
+    TArray<TSubclassOf<UGameplayAbility>> CommonAbilities;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effects")
+    TSubclassOf<UGameplayEffect> InitStatsEffect;
 
-	bool bASCInitialized = false;
+    void OnLevelAttributeChanged(const FOnAttributeChangeData &Data);
 
+    // XP and Level up related
 
-	UPROPERTY()
-	UUserWidget* LoadingScreenWidget;
+    UPROPERTY(EditAnywhere, Category = "XP")
+    UCurveTable *XpScaleTable;
 
-	void SetupAttributes();
+    UPROPERTY(EditAnywhere, Category = "Effects")
+    TSubclassOf<UGameplayEffect> LevelUpEffect;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities")
-	TArray<TSubclassOf<UGameplayAbility>> CommonAbilities;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effects")
-	TSubclassOf<UGameplayEffect> InitStatsEffect;
+    UPROPERTY(EditAnywhere, Category = "Effects")
+    TSubclassOf<UGameplayEffect> XpMaxEffect;
 
-	void OnLevelAttributeChanged(const FOnAttributeChangeData& Data);
+    UPROPERTY(EditAnywhere, Category = "Effects")
+    TSubclassOf<UGameplayEffect> SetXpCorrectly;
 
+    UPROPERTY(BlueprintReadOnly, Category = "Effects")
+    TSubclassOf<UGameplayEffect> LevelUpStats;
 
-	//XP and Level up related
+    // Abilities related
+    void GrantAbilities();
 
-	UPROPERTY(EditAnywhere, Category = "XP")
-	UCurveTable* XpScaleTable;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character Class")
+    UCharacterClasses *CharacterClassData;
 
-	UPROPERTY(EditAnywhere, Category = "Effects")
-	TSubclassOf<UGameplayEffect> LevelUpEffect;
+    UFUNCTION(Client, Reliable)
+    void Client_OnAbilityGranted(FGrantAbilitiesDataByLevel AbilityEntry);
 
+    UPROPERTY(BlueprintAssignable)
+    FOnAbilityGranted OnAbilityGranted;
 
-	UPROPERTY(EditAnywhere, Category = "Effects")
-	TSubclassOf<UGameplayEffect> XpMaxEffect;
+    UPROPERTY(BlueprintAssignable)
+    FOnLevelChanged OnLevelChanged;
 
+    UPROPERTY(BlueprintAssignable)
+    FOnAbilityInitialized OnAbilityInitialized;
 
-	UPROPERTY(EditAnywhere, Category = "Effects")
-	TSubclassOf<UGameplayEffect> SetXpCorrectly;
+    UPROPERTY(ReplicatedUsing = OnRep_PlayerClassTag, BlueprintReadOnly)
+    FGameplayTag PlayerClassTag;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Effects")
-	TSubclassOf<UGameplayEffect> LevelUpStats;
+    UFUNCTION()
+    void OnRep_PlayerClassTag();
 
+    UFUNCTION()
+    void OnDeathTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
 
-	//Abilities related
-	void GrantAbilities();
+    UFUNCTION(BlueprintCallable, Category = "Death")
+    void HandleDeath();
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character Class")
-	UCharacterClasses* CharacterClassData;
+    UFUNCTION(BlueprintCallable, Category = "Spawn")
+    void HandleRespawn();
 
+    // Inventory related
 
+    UPROPERTY()
+    AM_PreviewActorInventory *PreviewActor;
 
-	UFUNCTION(Client, Reliable)
-	void Client_OnAbilityGranted(FGrantAbilitiesDataByLevel AbilityEntry);
+    UPROPERTY(EditAnywhere, Category = "Preview")
+    TSubclassOf<UAnimInstance> PreviewAnimClass;
 
+    UPROPERTY(BlueprintAssignable)
+    FOnPreviewReady OnPreviewReady;
 
+    UPROPERTY(EditDefaultsOnly, Category = "Abilities")
+    UM_CommonAbilities *CommonAbilitiesData;
 
-	UPROPERTY(BlueprintAssignable)
-	FOnAbilityGranted OnAbilityGranted;
+    UFUNCTION()
+    void GrantCommonAbilities();
 
+    // Quests
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest")
+    UM_QuestComponent *QuestComponent;
 
-	UPROPERTY(BlueprintAssignable)
-	FOnLevelChanged OnLevelChanged;
+    // Warrior
 
+    UPROPERTY()
+    FActiveGameplayEffectHandle ActiveWeaponEffectHandle;
+    UPROPERTY()
+    FActiveGameplayEffectHandle ActiveArmorEffectHandle;
 
+    UFUNCTION()
+    void UnequipWeapon(FItemData WeaponItem);
 
-	UPROPERTY(BlueprintAssignable)
-	FOnAbilityInitialized OnAbilityInitialized;
+    UFUNCTION()
+    void OnWeaponEquipped(FItemData Item);
 
+    UFUNCTION(Server, Reliable)
+    void Server_SpawnAndEquipWeapon(FItemData Item);
 
-	UPROPERTY(ReplicatedUsing = OnRep_PlayerClassTag, BlueprintReadOnly)
-	FGameplayTag PlayerClassTag;
+    UFUNCTION(NetMulticast, Reliable)
+    void Multicast_AttachWeapon(AWeaponBase *Weapon, FItemData Item);
 
-	UFUNCTION()
-	void OnRep_PlayerClassTag();
+    // MiniMap
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Minimap")
+    class USceneCaptureComponent2D *MiniMapCaptureComponent;
 
-	UFUNCTION()
-	void OnDeathTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
+    UPROPERTY(BlueprintReadOnly, Category = "Minimap")
+    class UTextureRenderTarget2D *MiniMapRenderTarget;
 
-	UFUNCTION(BlueprintCallable, Category = "Death")
-	void HandleDeath();
+    UPROPERTY(EditDefaultsOnly, Category = "Minimap")
+    int32 MiniMapResolution = 512;
 
-	UFUNCTION(BlueprintCallable, Category = "Spawn")
-	void HandleRespawn();
+    UPROPERTY(EditDefaultsOnly, Category = "Minimap")
+    float MiniMapOrthoWidth = 5000.f;
 
+    UPROPERTY(BlueprintAssignable, Category = "Minimap")
+    FOnMiniMapReady OnMiniMapReady;
 
+    UPROPERTY(EditDefaultsOnly, Category = "Minimap")
+    class UMaterialInterface *MiniMapBaseMaterial;
 
-	//Inventory related
+    UPROPERTY(BlueprintReadOnly, Category = "Minimap")
+    class UMaterialInstanceDynamic *MiniMapDynamicMaterial;
 
-	UPROPERTY()
-	AM_PreviewActorInventory* PreviewActor;
+    UFUNCTION(BlueprintCallable, Category = "Minimap")
+    FVector2D GetFullMapIconPosition(FVector2D ImageSize) const;
 
-	UPROPERTY(EditAnywhere, Category = "Preview")
-	TSubclassOf<UAnimInstance> PreviewAnimClass;
+  protected:
+    virtual void BeginPlay() override;
+    virtual void PossessedBy(AController *NewController) override;
+    virtual void OnRep_PlayerState() override;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+    TObjectPtr<USpringArmComponent> SpringArmComp;
 
-	UPROPERTY(BlueprintAssignable)
-	FOnPreviewReady OnPreviewReady;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+    TObjectPtr<UCameraComponent> Camera;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Abilities")
-	UM_CommonAbilities* CommonAbilitiesData;
-
-	UFUNCTION()
-	void GrantCommonAbilities();
-
-	//Quests
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest")
-	UM_QuestComponent* QuestComponent;
-
-	//Warrior 
-
-	UPROPERTY()
-	FActiveGameplayEffectHandle ActiveWeaponEffectHandle;
-	UPROPERTY()
-	FActiveGameplayEffectHandle ActiveArmorEffectHandle;
-
-
-	UFUNCTION()
-	void UnequipWeapon(FItemData WeaponItem);
-
-
-	UFUNCTION()
-	void OnWeaponEquipped(FItemData Item);
-
-	UFUNCTION(Server, Reliable)
-	void Server_SpawnAndEquipWeapon(FItemData Item);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_AttachWeapon(AWeaponBase* Weapon, FItemData Item);
-
-
-
-	//MiniMap
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Minimap")
-	class USceneCaptureComponent2D* MiniMapCaptureComponent;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Minimap")
-	class UTextureRenderTarget2D* MiniMapRenderTarget;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Minimap")
-	int32 MiniMapResolution = 512;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Minimap")
-	float MiniMapOrthoWidth = 5000.f;
-
-	UPROPERTY(BlueprintAssignable, Category = "Minimap")
-	FOnMiniMapReady OnMiniMapReady;
-
-
-	UPROPERTY(EditDefaultsOnly, Category = "Minimap")
-	class UMaterialInterface* MiniMapBaseMaterial;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Minimap")
-	class UMaterialInstanceDynamic* MiniMapDynamicMaterial;
-
-	UFUNCTION(BlueprintCallable, Category = "Minimap")
-	FVector2D GetFullMapIconPosition(FVector2D ImageSize) const;
-
-
-
-
-protected:
-	virtual void BeginPlay() override;
-	virtual void PossessedBy(AController* NewController) override;
-	virtual void OnRep_PlayerState() override;
-
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-	TObjectPtr<USpringArmComponent> SpringArmComp;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-	TObjectPtr<UCameraComponent> Camera;
-	
-
-	FTimerHandle AutoSaveTimer;
+    FTimerHandle AutoSaveTimer;
 };

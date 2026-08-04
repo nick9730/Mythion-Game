@@ -1,44 +1,32 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Abilities/Mage/GA_Blink.h"
-#include "GameFramework/PlayerController.h"
-#include "GameFramework/Character.h"
+#include "Abilities/Tasks/AbilityTask_ApplyRootMotionConstantForce.h"
 #include "AbilitySystemComponent.h"
 #include "Attributes/M_AttributeSet.h"
+#include "Characters/PlayerCharacter.h"
+#include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Abilities/Tasks/AbilityTask_ApplyRootMotionConstantForce.h"
+#include "GameFramework/PlayerController.h"
 
 UGA_Blink::UGA_Blink()
 {
-	
 }
 
-float UGA_Blink::GetMaxBlinkDistance() const
+void UGA_Blink::OnRootMotionFinished()
 {
-    float FinalMaxDistance = MaxBlinkDistance;
-
-	const UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
-    if (ASC)
+    UAbilitySystemComponent *ASC = PlayerChar->GetAbilitySystemComponent();
+    if (IsValid(ASC))
     {
-        const float Level = ASC->GetNumericAttribute(UM_AttributeSet::GetLevelAttribute());
-		FinalMaxDistance += (Level-1) * BlinkDistancePerLevel;
+        FGameplayTag BlinkCueTag = FGameplayTag::RequestGameplayTag(FName("GameplayCue.Abilities.Blink"));
+        ASC->RemoveGameplayCue(BlinkCueTag);
     }
-    return FinalMaxDistance;
+    EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
 }
 
-void UGA_Blink::OnDashFinished()
-{
-    EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(),
-        GetCurrentActivationInfo(), true, false);
-}
-
-
-void UGA_Blink::ActivateAbility(
-    const FGameplayAbilitySpecHandle Handle,
-    const FGameplayAbilityActorInfo* ActorInfo,
-    const FGameplayAbilityActivationInfo ActivationInfo,
-    const FGameplayEventData* TriggerEventData)
+void UGA_Blink::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo *ActorInfo,
+                                const FGameplayAbilityActivationInfo ActivationInfo,
+                                const FGameplayEventData *TriggerEventData)
 {
     Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
@@ -48,58 +36,37 @@ void UGA_Blink::ActivateAbility(
         return;
     }
 
-    ACharacter* Character = Cast<ACharacter>(ActorInfo->AvatarActor.Get());
+    APlayerCharacter *Character = Cast<APlayerCharacter>(ActorInfo->AvatarActor.Get());
     if (!Character)
     {
-        EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
         return;
     }
 
-    FVector Direction = Character->GetActorForwardVector();
-    Direction.Z = 0.f;
-    Direction.Normalize();
+    PlayerChar = Character;
+    CurrentLevel = GetCharacterLevel(PlayerChar);
 
-    UAbilityTask_ApplyRootMotionConstantForce* Task =
+    UAbilitySystemComponent *ASC = PlayerChar->GetAbilitySystemComponent();
+    FGameplayTag BlinkCueTag = FGameplayTag::RequestGameplayTag(FName("GameplayCue.Abilities.Blink"));
+
+    float FinalStrength = DashStrength * CurrentLevel;
+
+    if (IsValid(ASC))
+    {
+        FGameplayCueParameters CueParams;
+        ASC->AddGameplayCue(BlinkCueTag, CueParams);
+    }
+
+    FVector InputDirection = PlayerChar->GetLastMovementInputVector();
+    if (InputDirection.IsNearlyZero())
+    {
+        InputDirection = PlayerChar->GetActorForwardVector();
+    }
+
+    UAbilityTask_ApplyRootMotionConstantForce *RootMotionTask =
         UAbilityTask_ApplyRootMotionConstantForce::ApplyRootMotionConstantForce(
-            this,
-            FName("Dash"),
-            Direction,
-            DashStrength,
-            0.2f,
-            false,
-            nullptr,
-            ERootMotionFinishVelocityMode::ClampVelocity,
-            FVector::ZeroVector,
-            0.f,
-            false
-        );
+            this, NAME_None, InputDirection, FinalStrength, 0.25f, true, nullptr,
+            ERootMotionFinishVelocityMode::MaintainLastRootMotionVelocity, FVector::ZeroVector, 0.f, true);
 
-    Task->OnFinish.AddDynamic(this, &UGA_Blink::OnDashFinished);
-    Task->ReadyForActivation();
-}
-
-
-
-FVector UGA_Blink::ValidateBlinkTarget(const FVector& RawTarget, const AActor* Avatar) const
-{
-    if (RawTarget.IsZero()) return Avatar->GetActorLocation();
-
-    FVector Origin = Avatar->GetActorLocation();
-    FVector Direction = (RawTarget - Origin);
-    float Distance = Direction.Size();
-    Direction.Normalize();
-
-    float ClampedDistance = FMath::Clamp(Distance, MinBlinkDistance, GetMaxBlinkDistance());
-    FVector FinalTarget = Origin + Direction * ClampedDistance;
-
-    FHitResult SweepHit;
-    FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(35.f, 90.f);
-
-    GetWorld()->SweepSingleByChannel(SweepHit, Origin, FinalTarget,
-        FQuat::Identity, ECC_Pawn, CapsuleShape);
-
-    if (SweepHit.bBlockingHit)
-        return SweepHit.Location;
-
-    return FinalTarget;
+    RootMotionTask->OnFinish.AddDynamic(this, &UGA_Blink::OnRootMotionFinished);
+    RootMotionTask->ReadyForActivation();
 }

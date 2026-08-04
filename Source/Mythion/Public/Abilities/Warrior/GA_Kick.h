@@ -51,9 +51,6 @@ class MYTHION_API UGA_Kick : public UM_GameplayAbility
     UFUNCTION()
     void OnDelayFinished();
 
-    UFUNCTION()
-    float GetCharacterLevel(APlayerCharacter *Character);
-
     UPROPERTY()
     float CurrentLevel = 1.0f;
 

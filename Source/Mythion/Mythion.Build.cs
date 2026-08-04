@@ -27,7 +27,9 @@ public class Mythion : ModuleRules
 			"HTTP",
 			"Json",
 			"JsonUtilities",
-			 "WebSockets"
+			 "WebSockets",
+			 "Niagara" ,
+
 
 
 		});

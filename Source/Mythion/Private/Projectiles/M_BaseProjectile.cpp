@@ -1,28 +1,85 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Projectiles/M_BaseProjectile.h"
-
+#include "Characters/Enemy.h"
+#include "Characters/PlayerCharacter.h"
+#include "Components/SphereComponent.h"
+#include "GAS/M_GameplayAbility.h"
+#include "GameFramework/ProjectileMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "NiagaraComponent.h"
 
 // Sets default values
 AM_BaseProjectile::AM_BaseProjectile()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
 
+    PrimaryActorTick.bCanEverTick = false;
+    bReplicates = true;
+
+    CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
+    CollisionComponent->InitSphereRadius(15.0f);
+    CollisionComponent->SetCollisionProfileName(TEXT("Projectile"));
+    CollisionComponent->OnComponentHit.AddDynamic(this, &AM_BaseProjectile::OnHit);
+    RootComponent = CollisionComponent;
+
+    ProjectileVFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ProjectileVFX"));
+    ProjectileVFX->SetupAttachment(RootComponent);
+
+    ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
+    ProjectileMovement->UpdatedComponent = CollisionComponent;
+    ProjectileMovement->InitialSpeed = ProjectileSpeed;
+    ProjectileMovement->MaxSpeed = ProjectileSpeed;
+    ProjectileMovement->ProjectileGravityScale = GravityScale;
+
+    InitialLifeSpan = MaxLifetime;
 }
 
-// Called when the game starts or when spawned
 void AM_BaseProjectile::BeginPlay()
 {
-	Super::BeginPlay();
-	
+    Super::BeginPlay();
 }
 
-// Called every frame
 void AM_BaseProjectile::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
-
+    Super::Tick(DeltaTime);
 }
 
+void AM_BaseProjectile::OnHit(UPrimitiveComponent *HitComp, AActor *OtherActor, UPrimitiveComponent *OtherComp,
+                              FVector NormalImpulse, const FHitResult &Hit)
+{
+    if (!IsValid(OtherActor) || OtherActor == this || OtherActor == SourceActor)
+        return;
+
+    APawn *HitPawn = Cast<APawn>(OtherActor);
+    if (!IsValid(HitPawn))
+        return;
+
+    OnProjectileHit.Broadcast(OtherActor, Hit.Location);
+
+    Destroy();
+}
+
+void AM_BaseProjectile::Destroyed()
+{
+    if (!bHasHit)
+    {
+        OnProjectileExpired.Broadcast();
+    }
+
+    Super::Destroyed();
+}
+
+void AM_BaseProjectile::LaunchInDirection(FVector Direction)
+{
+    if (!IsValid(ProjectileMovement))
+        return;
+    ProjectileMovement->Velocity = Direction.GetSafeNormal() * ProjectileMovement->InitialSpeed;
+}
+
+void AM_BaseProjectile::IgnoreActor(AActor *ActorToIgnore)
+{
+    if (IsValid(CollisionComponent) && IsValid(ActorToIgnore))
+    {
+        CollisionComponent->IgnoreActorWhenMoving(ActorToIgnore, true);
+    }
+}

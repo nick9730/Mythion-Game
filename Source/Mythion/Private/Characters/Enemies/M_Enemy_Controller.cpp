@@ -192,9 +192,10 @@ void AM_Enemy_Controller::SetEnemyToAggresive(AActor *Target)
     GetBlackboardComponent()->SetValueAsEnum(FName("State"), (uint8)E_AIStates::Attacking);
 }
 
-void AM_Enemy_Controller::SetEnemyToInvestigate()
+void AM_Enemy_Controller::SetEnemyToInvestigate(AActor *InvestigateTarget)
 {
     GetBlackboardComponent()->SetValueAsEnum(FName("State"), (uint8)E_AIStates::Investigating);
+    GetBlackboardComponent()->SetValueAsObject(FName("InvestigateTargetActor"), InvestigateTarget);
 }
 
 void AM_Enemy_Controller::SendEnemyToHomeLocation(AActor *Actor)
@@ -276,7 +277,9 @@ void AM_Enemy_Controller::HandlePerceptionMelee(const TArray<AActor *> &Perceive
                 Enemy->GetCharacterMovement()->MaxWalkSpeed = Enemy->WalkSpeed;
             }
             if (IsNotValidTarget(Player))
+            {
                 SetEnemyToPassive();
+            }
             Enemy->GetCharacterMovement()->MaxWalkSpeed = Enemy->ChaseSpeed;
 
             WhoIsTheClosestTarget(PerceivedActors);
@@ -287,7 +290,7 @@ void AM_Enemy_Controller::HandlePerceptionMelee(const TArray<AActor *> &Perceive
         {
             PC->Client_NotifyUserByEnemyPerception(false, Enemy);
 
-            SetEnemyToInvestigate();
+            SetEnemyToInvestigate(Player);
             SetValueVector(FName("LastKnownLocation"), Player->GetActorLocation());
             int8 CurrentState = GetBlackboardComponent()->GetValueAsEnum(FName("State"));
             if (CurrentState == (uint8)E_AIStates::Investigating)
@@ -325,7 +328,10 @@ void AM_Enemy_Controller::HandlePerceptionMelee(const TArray<AActor *> &Perceive
                 Enemy->GetCharacterMovement()->MaxWalkSpeed = Enemy->WalkSpeed;
             }
             if (IsNotValidTarget(Player))
+            {
+
                 SetEnemyToPassive();
+            }
 
             Enemy->GetCharacterMovement()->MaxWalkSpeed = Enemy->ChaseSpeed;
 
@@ -358,13 +364,16 @@ void AM_Enemy_Controller::HandlePerceptionMelee(const TArray<AActor *> &Perceive
                 Enemy->GetCharacterMovement()->MaxWalkSpeed = Enemy->WalkSpeed;
             }
             if (IsNotValidTarget(Player))
+            {
+
                 SetEnemyToPassive();
+            }
 
             Enemy->GetCharacterMovement()->MaxWalkSpeed = Enemy->ChaseSpeed;
 
             GetWorldTimerManager().ClearTimer(LoseSightTimer);
 
-            SetEnemyToInvestigate();
+            SetEnemyToInvestigate(Player);
             SetValueVector(FName("LastKnownLocation"), Stimulus.StimulusLocation);
 
             GetWorldTimerManager().SetTimer(LoseSightTimer, [this]() { SetEnemyToPassive(); }, 5.0f, false);

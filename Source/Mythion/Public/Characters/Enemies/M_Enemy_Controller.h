@@ -33,6 +33,9 @@ class MYTHION_API AM_Enemy_Controller : public AAIController
   public:
     AM_Enemy_Controller();
 
+    UFUNCTION(BlueprintCallable)
+    void SetEnemyToPassive();
+
   protected:
     virtual void BeginPlay() override;
     virtual void Tick(float DeltaTime) override;
@@ -62,14 +65,11 @@ class MYTHION_API AM_Enemy_Controller : public AAIController
     UPROPERTY()
     APawn *EnemyCharacter;
 
-    UFUNCTION(BlueprintCallable)
-    void SetEnemyToPassive();
-
     UFUNCTION()
     void SetEnemyToAggresive(AActor *Target);
 
     UFUNCTION()
-    void SetEnemyToInvestigate();
+    void SetEnemyToInvestigate(AActor *InvestigateTarget);
 
     UFUNCTION()
     void SendEnemyToHomeLocation(AActor *Actor);

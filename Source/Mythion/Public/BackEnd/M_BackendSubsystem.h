@@ -23,7 +23,7 @@ class MYTHION_API UM_BackendSubsystem : public UGameInstanceSubsystem
     virtual void Deinitialize() override;
 
     UPROPERTY(BlueprintReadWrite, Category = "Mythion | Backend")
-    FString ServerURL = TEXT("http://10.83.12.168:3000");
+    FString ServerURL;
 
     // Auth data
     UPROPERTY(BlueprintReadOnly, Category = "Mythion | Backend")

@@ -50,24 +50,6 @@ void UGA_JumpAttack::OnGameplayEventReceived(FGameplayEventData Payload)
     ApplyJumpAttackWithMultipleSphereTraceObjects(PlayerChar);
 }
 
-float UGA_JumpAttack::GetCharacterLevel(APlayerCharacter *Character)
-{
-    if (!IsValid(Character))
-        return 1.0f;
-
-    UAbilitySystemComponent *ASC = Character->GetAbilitySystemComponent();
-    if (!IsValid(ASC))
-        return 1.0f;
-    const UM_AttributeSet *AttributeSet = ASC->GetSet<UM_AttributeSet>();
-    float PlayerLevel = 1.0f;
-    if (IsValid(AttributeSet))
-    {
-        PlayerLevel = AttributeSet->GetLevel();
-    }
-
-    return PlayerLevel;
-}
-
 void UGA_JumpAttack::ApplyJumpAttackWithMultipleSphereTraceObjects(APlayerCharacter *Character)
 {
 

@@ -23,9 +23,6 @@ class MYTHION_API UGA_JumpAttack : public UM_GameplayAbility
 
     virtual void OnGameplayEventReceived(FGameplayEventData Payload) override;
 
-    UFUNCTION()
-    float GetCharacterLevel(APlayerCharacter *Character);
-
     UPROPERTY()
     float CurrentLevel;
 

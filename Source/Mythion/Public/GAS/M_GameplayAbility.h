@@ -13,6 +13,8 @@
  */
 class UAnimMontage;
 struct FGameplayTag;
+class APlayerCharacter;
+class AEnemy;
 
 UCLASS()
 class MYTHION_API UM_GameplayAbility : public UGameplayAbility
@@ -62,16 +64,43 @@ class MYTHION_API UM_GameplayAbility : public UGameplayAbility
     UFUNCTION()
     virtual void OnMontageCancelled();
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities | ProjectileTagEnd")
+    FGameplayTag ProjectileCueTagEnd;
 
-  UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities | Safety")
-float EventTimeoutDuration = 3.0f;
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities | ProjectileTagStart")
+    FGameplayTag ProjectileCueTagStart;
 
-UFUNCTION(BlueprintCallable, Category = "Abilities | Safety")
-virtual void StartEventTimeoutSafety();
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities | Safety")
+    float EventTimeoutDuration = 3.0f;
 
-UFUNCTION()
-virtual void OnEventTimeout();
+    UFUNCTION(BlueprintCallable, Category = "Abilities | Safety")
+    virtual void StartEventTimeoutSafety();
 
-UPROPERTY()
-bool bHasEnded = false;
+    UFUNCTION()
+    void ApplyAOEDamageAtLocation(FVector StartLocation, FVector EndLocation, float Radius, float Damage,
+                                  AActor *Instigator, int32 CurrentLevel, FGameplayTag CueLocation);
+
+    UFUNCTION()
+    virtual void OnEventTimeout();
+
+    UPROPERTY()
+    bool bHasEnded = false;
+
+    UPROPERTY()
+    int32 ExpectedInterruptCount = 0;
+
+    UFUNCTION(BlueprintCallable, Category = "Abilities")
+    void ExecuteCueAtLocation(FGameplayTag CueTag, float RawMagnitude, FVector Location);
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities | ProjectileTagStart")
+    FGameplayTag GamepalyCueTagLocation;
+
+    UFUNCTION()
+    float GetCharacterLevel(APlayerCharacter *Character);
+
+    UFUNCTION()
+    FVector PositionOfPlayerCharacter(AEnemy *EnemyCharacter);
+
+    UPROPERTY(EditDefaultsOnly, Category = "Blackboard")
+    FName TargetActorKeyName = FName("TargetActor");
 };

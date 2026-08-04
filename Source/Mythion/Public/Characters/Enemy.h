@@ -2,12 +2,11 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Characters/BaseCharacter.h"
-#include "Characters/Enemies/M_Enemy_Verticals.h"
 #include "Characters/Enemies/EnemyTypes.h"
+#include "Characters/Enemies/M_Enemy_Verticals.h"
+#include "CoreMinimal.h"
 #include "Enemy.generated.h"
-
 
 class UWidgetComponent;
 class UGameplayEffect;
@@ -15,126 +14,129 @@ class UBehaviorTree;
 class UAbilitySystemComponent;
 class AM_Enemy_Area_Spawner;
 class AM_PlayerController;
+class USoundBase;
+struct FGameplayTag;
 
 UCLASS()
 class MYTHION_API AEnemy : public ABaseCharacter, public IAbilitySystemInterface
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-public:
-	AEnemy();
+  public:
+    AEnemy();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy Setup Checklist")
-	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy Setup Checklist")
+    TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 
-	UPROPERTY(Transient)
-	TObjectPtr<const class UM_AttributeSet> AttributeSet;
+    UPROPERTY(Transient)
+    TObjectPtr<const class UM_AttributeSet> AttributeSet;
 
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+    virtual UAbilitySystemComponent *GetAbilitySystemComponent() const override;
 
+    UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist | Speed")
+    float WalkSpeed;
 
-	UPROPERTY( EditAnywhere, Category = "Enemy Setup Checklist | Speed")
-	float WalkSpeed;
+    UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist | Speed")
+    float ChaseSpeed;
 
-	UPROPERTY( EditAnywhere, Category = "Enemy Setup Checklist | Speed")
-	float ChaseSpeed;
+    UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist | AIPerception")
+    float SightRadius;
 
+    UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist | AIPerception")
+    float LoseSightRadius;
 
-	UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist | AIPerception")
-	float SightRadius;
+    UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist | AIPerception")
+    float PeripheralVisionAngleDegrees;
 
+    UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist | AIPerception")
+    float HearingRange;
 
-	UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist | AIPerception")
-	float LoseSightRadius;
+    UPROPERTY(EditDefaultsOnly, Category = "Enemy Setup Checklist | Attack Tree")
+    FGameplayTag MeleeAttackAbilityTag;
 
+    UPROPERTY(BlueprintReadOnly, Category = "Enemy Setup Checklist")
+    TObjectPtr<AM_Enemy_Area_Spawner> OwningSpawner;
 
-	UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist | AIPerception")
-	float PeripheralVisionAngleDegrees;
+    void Tick(float DeltaTime) override;
+    virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty> &OutLifetimeProps) const override;
+    virtual void HandleDeath() override;
 
-	UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist | AIPerception")
-	float HearingRange;
+    UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist")
+    UBehaviorTree *BehaviorTree;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Enemy Setup Checklist")
-	TObjectPtr<AM_Enemy_Area_Spawner> OwningSpawner;
+    UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist")
+    FName EnemyName;
 
-	void Tick(float DeltaTime) override;
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual void HandleDeath() override;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy Setup Checklist")
+    TObjectPtr<UWidgetComponent> HealthBarComponent;
 
-	UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist")
-	UBehaviorTree* BehaviorTree;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy Setup Checklist")
+    TSubclassOf<UM_Enemy_Verticals> HealthBarWidgetClass;
 
-	UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist")
-	FName EnemyName;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy Setup Checklist")
+    FString EnemyDisplayName = TEXT("Enemy");
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy Setup Checklist")
-	TObjectPtr<UWidgetComponent> HealthBarComponent;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy Setup Checklist")
+    float HealthBarVisibilityRadius = 500.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy Setup Checklist")
-	TSubclassOf<UM_Enemy_Verticals> HealthBarWidgetClass;
+    UFUNCTION()
+    void SpawnXpReward();
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy Setup Checklist")
-	FString EnemyDisplayName = TEXT("Enemy");
+    UFUNCTION()
+    void SpawnActor();
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy Setup Checklist")
-	float HealthBarVisibilityRadius = 500.f;
+    FVector SpawnPoint;
+    FTimerHandle RespawnTimer;
 
-	UFUNCTION()
-	void SpawnXpReward();
+    UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist")
+    TSubclassOf<AActor> XpRewardClass;
 
-	UFUNCTION()
-	void SpawnActor();
+    UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist")
+    EEnemyType EnemyType;
 
-	FVector SpawnPoint;
-	FTimerHandle RespawnTimer;
+    UFUNCTION()
+    void InitializeEnemyAttributes(TSubclassOf<UGameplayEffect> InitEffect);
 
-	UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist")
-	TSubclassOf<AActor> XpRewardClass;
+    bool IsAlive() const
+    {
+        return bAlive;
+    }
+    void SetAlive(bool bNewAlive)
+    {
+        bAlive = bNewAlive;
+    }
 
-	UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist")
-	EEnemyType EnemyType;
+    UFUNCTION(NetMulticast, Reliable)
+    void Multicast_PlayDeathAnimation();
 
-	UFUNCTION()
-	void InitializeEnemyAttributes(TSubclassOf<UGameplayEffect> InitEffect);
+    UFUNCTION(NetMulticast, Reliable)
+    void Multicast_HideWeapon();
 
-  bool IsAlive() const { return bAlive; }
-  void SetAlive(bool bNewAlive) { bAlive = bNewAlive; }
+    UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist")
+    TArray<TSubclassOf<UGameplayAbility>> AbilityClasses;
 
-  UFUNCTION(NetMulticast, Reliable)
-  void Multicast_PlayDeathAnimation();
+    UFUNCTION(NetMulticast, Reliable)
+    void Multicast_DisableCollisionOnDeath();
 
-  UFUNCTION(NetMulticast, Reliable)
-  void Multicast_HideWeapon();
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy Setup Checklist ")
+    TObjectPtr<UAnimMontage> DeathMontage;
 
+    UFUNCTION()
+    void FindTheCorrectEnemy();
 
-  UPROPERTY(EditAnywhere, Category = "Enemy Setup Checklist")
-  TArray<TSubclassOf<UGameplayAbility>> AbilityClasses;
+    UPROPERTY()
+    AM_PlayerController *LastDamageInstigator;
 
-  UFUNCTION(NetMulticast, Reliable)
-  void Multicast_DisableCollisionOnDeath();
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy Setup Checklist ")
+    FName SocketName;
 
-  UPROPERTY(EditAnywhere,BlueprintReadOnly, Category = "Enemy Setup Checklist ")
-  TObjectPtr<UAnimMontage> DeathMontage;
+  protected:
+    virtual void BeginPlay() override;
+    virtual void PossessedBy(AController *NewController) override;
 
-  UFUNCTION()
- void FindTheCorrectEnemy();
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy Setup Checklist")
+    TSubclassOf<UGameplayEffect> InitializeAttributesEffectEnemy;
 
- UPROPERTY()
- AM_PlayerController* LastDamageInstigator;
-
-protected:
-	virtual void BeginPlay() override;
-	virtual void PossessedBy(AController* NewController) override;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy Setup Checklist")
-	TSubclassOf<UGameplayEffect> InitializeAttributesEffectEnemy;
-
-private:
-	bool bAlive = true;
-
-
-
-
-
-
+  private:
+    bool bAlive = true;
 };

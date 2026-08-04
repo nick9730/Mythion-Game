@@ -124,21 +124,3 @@ void UGA_Kick ::OnDelayFinished()
 {
     EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
-
-float UGA_Kick::GetCharacterLevel(APlayerCharacter *Character)
-{
-    if (!IsValid(Character))
-        return 1.0f;
-
-    UAbilitySystemComponent *ASC = Character->GetAbilitySystemComponent();
-    if (!IsValid(ASC))
-        return 1.0f;
-    const UM_AttributeSet *AttributeSet = ASC->GetSet<UM_AttributeSet>();
-    float PlayerLevel = 1.0f;
-    if (IsValid(AttributeSet))
-    {
-        PlayerLevel = AttributeSet->GetLevel();
-    }
-
-    return PlayerLevel;
-}
