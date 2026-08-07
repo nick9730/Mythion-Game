@@ -5,6 +5,7 @@
 #include "Abilities/GameplayAbility.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "CoreMinimal.h"
+
 #include "GameplayTagContainer.h"
 #include "M_GameplayAbility.generated.h"
 
@@ -15,6 +16,7 @@ class UAnimMontage;
 struct FGameplayTag;
 class APlayerCharacter;
 class AEnemy;
+class UCharacterClasses;
 
 UCLASS()
 class MYTHION_API UM_GameplayAbility : public UGameplayAbility
@@ -22,19 +24,13 @@ class MYTHION_API UM_GameplayAbility : public UGameplayAbility
     GENERATED_BODY()
 
   public:
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mythion | Debug")
-    bool bDrawDebugs = false;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mythion | UI")
-    bool bShouldShowInAbilityBar = false;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities | Montage")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities | Main Montage")
     UAnimMontage *PlayableAnimMonage;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities | Montage")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities | AppliedEffect")
     TSubclassOf<UGameplayEffect> AssignedEffectClass;
 
-    UFUNCTION(BlueprintCallable, Category = "Mythion | Abilities")
+    UFUNCTION(BlueprintCallable, Category = "Abilities |  Montage")
     virtual void PlayMontage();
 
     UFUNCTION(BlueprintCallable, Category = "Event")
@@ -64,11 +60,11 @@ class MYTHION_API UM_GameplayAbility : public UGameplayAbility
     UFUNCTION()
     virtual void OnMontageCancelled();
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities | ProjectileTagEnd")
-    FGameplayTag ProjectileCueTagEnd;
-
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities | ProjectileTagStart")
     FGameplayTag ProjectileCueTagStart;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities | ProjectileTagEnd")
+    FGameplayTag ProjectileCueTagEnd;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities | Safety")
     float EventTimeoutDuration = 3.0f;
@@ -89,10 +85,11 @@ class MYTHION_API UM_GameplayAbility : public UGameplayAbility
     UPROPERTY()
     int32 ExpectedInterruptCount = 0;
 
-    UFUNCTION(BlueprintCallable, Category = "Abilities")
+    UFUNCTION(BlueprintCallable, Category = "Abilities | GameplayCue at Location")
     void ExecuteCueAtLocation(FGameplayTag CueTag, float RawMagnitude, FVector Location);
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities | ProjectileTagStart")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly,
+              Category = "Abilities | ProjectileTagStart or GamepalyCueTagLocation")
     FGameplayTag GamepalyCueTagLocation;
 
     UFUNCTION()
@@ -101,6 +98,9 @@ class MYTHION_API UM_GameplayAbility : public UGameplayAbility
     UFUNCTION()
     FVector PositionOfPlayerCharacter(AEnemy *EnemyCharacter);
 
-    UPROPERTY(EditDefaultsOnly, Category = "Blackboard")
+    UPROPERTY(EditDefaultsOnly, Category = "Abilities | Blackboard")
     FName TargetActorKeyName = FName("TargetActor");
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Abilities | For Common Montages")
+    TSoftObjectPtr<UCharacterClasses> CharacterClassData;
 };

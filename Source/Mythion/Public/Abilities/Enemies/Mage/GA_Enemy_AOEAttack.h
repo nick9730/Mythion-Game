@@ -4,8 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "GAS/M_GameplayAbility.h"
-#include "GA_Enemy_AOEAttack.generated.h"
+#include "GameplayTagContainer.h"
 
+#include "GA_Enemy_AOEAttack.generated.h"
 /**
  *
  */
@@ -22,14 +23,21 @@ class MYTHION_API UGA_Enemy_AOEAttack : public UM_GameplayAbility
 
     virtual void OnGameplayEventReceived(FGameplayEventData Payload) override;
 
- 
-
     UPROPERTY()
     AEnemy *EnemyInstigator;
 
-      UPROPERTY(EditDefaultsOnly,Category="Abilities")
-      float Damage=200.f;
+    UPROPERTY(EditDefaultsOnly, Category = "Abilities")
+    float Damage = 200.f;
 
-       UPROPERTY(EditDefaultsOnly,Category="Abilities")
-      float Radius=1000.f;
+    UPROPERTY(EditDefaultsOnly, Category = "Abilities")
+    float Radius = 1000.f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "AOE")
+    TObjectPtr<UMaterialInterface> AOEDecalMaterial;
+
+    UPROPERTY(EditDefaultsOnly, Category = "AOE")
+    FGameplayTag TagForDecal;
+
+    UPROPERTY(EditDefaultsOnly, Category = "AOE")
+    float DecalLifeSpan = 1.0f;
 };

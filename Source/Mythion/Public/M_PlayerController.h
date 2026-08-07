@@ -78,6 +78,11 @@ class MYTHION_API AM_PlayerController : public APlayerController
     UFUNCTION(Client, Reliable)
     void Client_NotifyUserByEnemyPerception(bool bPerceived, AActor *Enemy);
 
+    UPROPERTY(EditDefaultsOnly, Category = "Music")
+    float MusicDebounceDelay = 3.0f;
+
+    FTimerHandle MusicDebounceTimer;
+
     UPROPERTY()
     TArray<AActor *> EnemiesSpottingMe;
 

@@ -4,6 +4,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Characters/Enemies/M_Enemy_Controller.h"
 #include "Characters/Enemy.h"
+#include "Kismet/GameplayStatics.h"
 
 void UGA_Enemy_AOEAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
                                           const FGameplayAbilityActorInfo *ActorInfo,
@@ -27,7 +28,7 @@ void UGA_Enemy_AOEAttack::OnGameplayEventReceived(FGameplayEventData Payload)
     Super::OnGameplayEventReceived(Payload);
 
     FVector TargetLocation = PositionOfPlayerCharacter(EnemyInstigator);
-
+    ExecuteCueAtLocation(TagForDecal, Radius, TargetLocation);
     ApplyAOEDamageAtLocation(TargetLocation, TargetLocation, Radius, Damage, EnemyInstigator, 1,
                              GamepalyCueTagLocation);
 }

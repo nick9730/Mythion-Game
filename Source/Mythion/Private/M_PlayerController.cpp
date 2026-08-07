@@ -2226,9 +2226,8 @@ void AM_PlayerController::PlayTheSound()
         if (GenericGameSounds.IsValidIndex(SoundIndex))
         {
 
-            GenericSoundAudioComponent = UGameplayStatics::SpawnSoundAtLocation(this, GenericGameSounds[SoundIndex],
-                                                                                PlayerChar->GetActorLocation(),FRotator::ZeroRotator,
-    0.3f);
+            GenericSoundAudioComponent = UGameplayStatics::SpawnSoundAtLocation(
+                this, GenericGameSounds[SoundIndex], PlayerChar->GetActorLocation(), FRotator::ZeroRotator, 0.3f);
 
             if (GenericSoundAudioComponent)
             {
@@ -2259,15 +2258,22 @@ void AM_PlayerController::PlayTheSound()
 
 void AM_PlayerController::OnFinishingGenericSound()
 {
-    SoundIndex++;
     const TArray<USoundBase *> &ActiveSoundArray = GetSpotted() ? SoundCombat : GenericGameSounds;
 
-    if (SoundIndex >= ActiveSoundArray.Num())
+    if (ActiveSoundArray.Num() > 1)
+    {
+        int32 NewIndex;
+        do
+        {
+            NewIndex = FMath::RandRange(0, ActiveSoundArray.Num() - 1);
+        } while (NewIndex == SoundIndex);
+
+        SoundIndex = NewIndex;
+    }
+    else if (ActiveSoundArray.Num() == 1)
     {
         SoundIndex = 0;
     }
-
-    PlayTheSound();
 }
 
 void AM_PlayerController::Client_NotifyUserByEnemyPerception_Implementation(bool bPerceived, AActor *Enemy)
@@ -2285,9 +2291,24 @@ void AM_PlayerController::Client_NotifyUserByEnemyPerception_Implementation(bool
 
     bool bIsSpottedNow = GetSpotted();
 
-    if (bWasSpotted != bIsSpottedNow)
+    if (bWasSpotted == bIsSpottedNow)
+        return;
+
+    if (bIsSpottedNow)
     {
+        GetWorldTimerManager().ClearTimer(MusicDebounceTimer);
         SoundIndex = 0;
         PlayTheSound();
+    }
+    else
+    {
+        GetWorldTimerManager().ClearTimer(MusicDebounceTimer);
+        GetWorldTimerManager().SetTimer(
+            MusicDebounceTimer,
+            [this]() {
+                SoundIndex = 0;
+                PlayTheSound();
+            },
+            MusicDebounceDelay, false);
     }
 }

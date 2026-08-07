@@ -17,41 +17,27 @@ void UM_CalculationExecution::Execute_Implementation(const FGameplayEffectCustom
     FGameplayTag TeamTag = FGameplayTag::RequestGameplayTag(FName("Team.Enemy"));
 
     if (SourceASC->HasMatchingGameplayTag(TeamTag) && TargetASC->HasMatchingGameplayTag(TeamTag))
-    {
-
         return;
-    }
 
     AActor *TargetActor = ExecutionParams.GetTargetAbilitySystemComponent()->GetAvatarActor();
     AActor *SourceActor = ExecutionParams.GetSourceAbilitySystemComponent()->GetAvatarActor();
-
-    FVector TargetForward = TargetActor->GetActorForwardVector();
-    FVector ToAttacker = (SourceActor->GetActorLocation() - TargetActor->GetActorLocation()).GetSafeNormal();
 
     FGameplayCueParameters CueParams;
     CueParams.Instigator = SourceActor;
     CueParams.EffectContext = ExecutionParams.GetOwningSpec().GetEffectContext();
 
     FGameplayEventData EventData;
-    EventData.EventTag = FGameplayTag::RequestGameplayTag(FName("Event.Attack.Blocked"));
-    EventData.Instigator = TargetActor;
-    EventData.Target = SourceActor;
+    BuildGameplayEvent(EventData, FName("Event.Attack.Blocked"), TargetActor, SourceActor);
 
     FGameplayEventData EventForPlayerHit;
-    EventForPlayerHit.EventTag = FGameplayTag::RequestGameplayTag(FName("Event.Player.Hit"));
-    EventForPlayerHit.Instigator = SourceActor;
-    EventForPlayerHit.Target = TargetActor;
-
-    float DotProduct = FVector::DotProduct(TargetForward, ToAttacker);
-
-    const float BlockAngleThreshold = 0.866f;
-
-    bool bIsFrontalHit = DotProduct > BlockAngleThreshold;
-
-    const FGameplayEffectSpec &Spec = ExecutionParams.GetOwningSpec();
+    BuildGameplayEvent(EventForPlayerHit, FName("Event.Player.Hit"), TargetActor, SourceActor);
 
     float Damage = 0.f;
 
+    bool bIsFrontalHit = false;
+    FindAndSetIsFrontalHit(TargetActor, SourceActor, bIsFrontalHit);
+
+    const FGameplayEffectSpec &Spec = ExecutionParams.GetOwningSpec();
     FGameplayTagContainer AssetTags;
     Spec.GetAllAssetTags(AssetTags);
 
@@ -61,41 +47,89 @@ void UM_CalculationExecution::Execute_Implementation(const FGameplayEffectCustom
     if (AssetTags.HasTag(FGameplayTag::RequestGameplayTag("Data.Damage.Magical")))
         Damage = Spec.GetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.Damage.Magical"), false, 0.f);
 
-    float Armor = TargetASC->GetNumericAttribute(UM_AttributeSet::GetArmorAttribute());
-    float MagicResistance = TargetASC->GetNumericAttribute(UM_AttributeSet::GetMagicResistanceAttribute());
-
     float FinalDamage = Damage;
 
-    FGameplayTag IsBlocking = FGameplayTag::RequestGameplayTag(FName("Status.IsBlocking"));
+    FGameplayTag IsBlockingTag = FGameplayTag::RequestGameplayTag(FName("Status.IsBlocking"));
 
     if (AssetTags.HasTag(FGameplayTag::RequestGameplayTag("Data.Damage.Physical")))
     {
-
-        if (TargetASC->HasMatchingGameplayTag(IsBlocking) && bIsFrontalHit)
-        {
-
-            ExecutionParams.GetTargetAbilitySystemComponent()->ExecuteGameplayCue(
-                FGameplayTag::RequestGameplayTag(FName("GameplayCue.Abilities.Block")), CueParams);
-
-            UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(SourceActor, EventData.EventTag, EventData);
-
-            UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, EventForPlayerHit.EventTag,
-                                                                     EventForPlayerHit);
-
-            return;
-        }
-        ExecutionParams.GetTargetAbilitySystemComponent()->ExecuteGameplayCue(
-            FGameplayTag::RequestGameplayTag(FName("GameplayCue.Abilities.FleshHit")), CueParams);
-
-        FinalDamage *= (100.f / (100.f + Armor));
+        ApplyPhysicalDamage(FinalDamage, TargetASC, SourceActor, TargetActor, CueParams, EventData, EventForPlayerHit,
+                            ExecutionParams, bIsFrontalHit, IsBlockingTag);
     }
     else if (AssetTags.HasTag(FGameplayTag::RequestGameplayTag("Data.Damage.Magical")))
-        if (TargetASC->HasMatchingGameplayTag(IsBlocking) && bIsFrontalHit)
-        {
-            FinalDamage *= (80.f / (80.f + MagicResistance));
-        }
-    FinalDamage *= (100.f / (100.f + MagicResistance));
+    {
+        ApplyMagicalDamage(FinalDamage, TargetASC, bIsFrontalHit, IsBlockingTag);
+    }
 
     OutExecutionOutput.AddOutputModifier(
         FGameplayModifierEvaluatedData(UM_AttributeSet::GetHealthAttribute(), EGameplayModOp::AddBase, -FinalDamage));
 }
+
+void UM_CalculationExecution::ApplyPhysicalDamage(float &FinalDamage, UAbilitySystemComponent *TargetASC,
+                                                  AActor *SourceActor, AActor *TargetActor,
+                                                  FGameplayCueParameters CueParams, FGameplayEventData EventData,
+                                                  FGameplayEventData EventForPlayerHit,
+                                                  const FGameplayEffectCustomExecutionParameters &ExecutionParams,
+                                                  bool bIsFrontalHit, FGameplayTag IsBlockingTag) const
+{
+    float Armor = TargetASC->GetNumericAttribute(UM_AttributeSet::GetArmorAttribute());
+
+    if (TargetASC->HasMatchingGameplayTag(IsBlockingTag) && bIsFrontalHit)
+    {
+        ExecutionParams.GetTargetAbilitySystemComponent()->ExecuteGameplayCue(
+            FGameplayTag::RequestGameplayTag(FName("GameplayCue.Abilities.Block")), CueParams);
+
+        UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(SourceActor, EventData.EventTag, EventData);
+        UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, EventForPlayerHit.EventTag,
+                                                                 EventForPlayerHit);
+        return;
+    }
+
+    ExecutionParams.GetTargetAbilitySystemComponent()->ExecuteGameplayCue(
+        FGameplayTag::RequestGameplayTag(FName("GameplayCue.Abilities.FleshHit")), CueParams);
+
+    FinalDamage *= (100.f / (100.f + Armor));
+}
+
+void UM_CalculationExecution::ApplyMagicalDamage(float &FinalDamage, UAbilitySystemComponent *TargetASC,
+                                                 bool bIsFrontalHit, FGameplayTag IsBlockingTag) const
+{
+    float MagicResistance = TargetASC->GetNumericAttribute(UM_AttributeSet::GetMagicResistanceAttribute());
+
+    if (TargetASC->HasMatchingGameplayTag(IsBlockingTag) && bIsFrontalHit)
+    {
+        FinalDamage *= (80.f / (80.f + MagicResistance));
+    }
+    FinalDamage *= (100.f / (100.f + MagicResistance));
+}
+
+void UM_CalculationExecution::BuildGameplayEvent(FGameplayEventData &EventData, FName EventTag, AActor *Instigator,
+                                                 AActor *Target) const
+{
+    EventData.EventTag = FGameplayTag::RequestGameplayTag(EventTag);
+    EventData.Instigator = Instigator;
+    EventData.Target = Target;
+}
+
+void UM_CalculationExecution::FindAndSetIsFrontalHit(AActor *TargetActor, AActor *SourceActor,
+                                                     bool &bOutIsFrontalHit) const
+{
+    FVector TargetForward = TargetActor->GetActorForwardVector();
+    FVector ToAttacker = (SourceActor->GetActorLocation() - TargetActor->GetActorLocation()).GetSafeNormal();
+    float DotProduct = FVector::DotProduct(TargetForward, ToAttacker);
+    const float BlockAngleThreshold = 0.866f;
+    bOutIsFrontalHit = DotProduct > BlockAngleThreshold;
+}
+
+/*
+ EventForPlayerHit.EventTag = FGameplayTag::RequestGameplayTag(FName("Event.Player.Hit"));
+ EventForPlayerHit.Instigator = SourceActor;
+ EventForPlayerHit.Target = TargetActor;
+
+ */
+
+/*
+EventData.EventTag = FGameplayTag::RequestGameplayTag(FName("Event.Attack.Blocked"));
+EventData.Instigator = TargetActor;
+EventData.Target = SourceActor;
+*/

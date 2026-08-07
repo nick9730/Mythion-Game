@@ -210,6 +210,19 @@ void AEnemy::HandleDeath()
 
     GetCharacterMovement()->DisableMovement();
     SetLifeSpan(3.f);
+
+    if (HasAuthority())
+    {
+        for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+        {
+            AM_PlayerController *PC = Cast<AM_PlayerController>(Iterator->Get());
+            if (IsValid(PC))
+            {
+                PC->Client_NotifyUserByEnemyPerception(false, this);
+            }
+        }
+    }
+
     if (HasAuthority())
     {
         SpawnXpReward();

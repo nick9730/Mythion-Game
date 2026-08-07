@@ -11,6 +11,7 @@
 #include "Characters/Enemy.h"
 #include "Characters/PlayerCharacter.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Weapons/WeaponBase.h"
 
 void UGA_AOEAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo *ActorInfo,
                                     const FGameplayAbilityActivationInfo ActivationInfo,
@@ -112,8 +113,16 @@ void UGA_AOEAttack::OnGameplayEventReceived(FGameplayEventData Payload)
     ExecuteCueOnActor(PlayerChar, GamepalyCueTagLocation, TotalAOERadius, TargetLocation);
     */
 
-    ApplyAOEDamageAtLocation(TargetLocation, TargetLocation, TotalAOERadius, Damage, PlayerChar, CurrentLevel,
+    float WeaponDamage = 0.f;
+    if (IsValid(PlayerChar->EquippedWeapon))
+    {
+        WeaponDamage = PlayerChar->EquippedWeapon->WeaponDamage;
+    }
+    float FinalDamage = Damage + WeaponDamage;
+
+    ApplyAOEDamageAtLocation(TargetLocation, TargetLocation, TotalAOERadius, FinalDamage, PlayerChar, CurrentLevel,
                              GamepalyCueTagLocation);
+
     EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 
@@ -197,7 +206,6 @@ void UGA_AOEAttack::EndAbilityAOE(float TimeHeld)
         SpawnedTargetActor->Destroy();
         SpawnedTargetActor = nullptr;
     }
-    EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
     EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
 }
 

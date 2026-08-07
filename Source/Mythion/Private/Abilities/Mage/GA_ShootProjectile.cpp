@@ -44,7 +44,6 @@ void UGA_ShootProjectile::ActivateAbility(const FGameplayAbilitySpecHandle Handl
     PlayMontage();
 }
 
-
 FVector UGA_ShootProjectile::PredictTargetLocation(AActor *TargetActor, FVector ShooterLocation, float ProjectileSpeed)
 {
     if (!IsValid(TargetActor))
@@ -106,8 +105,12 @@ void UGA_ShootProjectile::HandleProjectileHit(AActor *HitActor, FVector HitLocat
     float Magnitude = 1.f;
     if (IsValid(PlayerChar))
     {
-
-        Magnitude = Damage * CurrentLevel;
+        float WeaponDamage = 0.f;
+        if (IsValid(PlayerChar->EquippedWeapon))
+        {
+            WeaponDamage = PlayerChar->EquippedWeapon->WeaponDamage;
+        }
+        Magnitude = (Damage + WeaponDamage) * CurrentLevel;
     }
     else if (IsValid(EnemyChar))
     {
