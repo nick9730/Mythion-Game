@@ -44,6 +44,9 @@ class UM_ShopWidget;
 class USoundBase;
 class UAudioComponent;
 
+class UM_MusicComponent;
+class UM_BackendComponent;
+
 UCLASS()
 class MYTHION_API AM_PlayerController : public APlayerController
 {
@@ -51,6 +54,7 @@ class MYTHION_API AM_PlayerController : public APlayerController
 
   public:
     // Sounds
+    /*
     UPROPERTY(EditDefaultsOnly, Category = "Game Sound")
     TArray<USoundBase *> GenericGameSounds;
 
@@ -66,30 +70,40 @@ class MYTHION_API AM_PlayerController : public APlayerController
     UFUNCTION()
     void OnFinishingGenericSound();
 
+    */
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+    UM_MusicComponent *MusicComponent;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<UM_BackendComponent> BackendComponent;
+
     UPROPERTY(EditDefaultsOnly, Category = "ShopSound")
     USoundBase *GreetingSoundShop;
 
     UPROPERTY(EditDefaultsOnly, Category = "ShopSound ")
     USoundBase *GoodByeSoundShop;
 
-    UPROPERTY(EditDefaultsOnly, Category = "CombatSound")
-    TArray<USoundBase *> SoundCombat;
+    // UPROPERTY(EditDefaultsOnly, Category = "CombatSound")
+    // TArray<USoundBase *> SoundCombat;
 
     UFUNCTION(Client, Reliable)
     void Client_NotifyUserByEnemyPerception(bool bPerceived, AActor *Enemy);
 
-    UPROPERTY(EditDefaultsOnly, Category = "Music")
-    float MusicDebounceDelay = 3.0f;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-    FTimerHandle MusicDebounceTimer;
+    // UPROPERTY(EditDefaultsOnly, Category = "Music")
+    // float MusicDebounceDelay = 3.0f;
 
-    UPROPERTY()
-    TArray<AActor *> EnemiesSpottingMe;
+    // FTimerHandle MusicDebounceTimer;
 
-    bool GetSpotted() const
-    {
-        return EnemiesSpottingMe.Num() > 0;
-    }
+    //  UPROPERTY()
+    //  TArray<AActor *> EnemiesSpottingMe;
+
+    // bool GetSpotted() const
+    //  {
+    //      return EnemiesSpottingMe.Num() > 0;
+    // }
 
     // Other things
 
@@ -106,8 +120,10 @@ class MYTHION_API AM_PlayerController : public APlayerController
     void Client_SetTokenAndTravel(const FString &Token, const FString &ServerIP);
 
     // Stats
+    /*
     void LoadPlayerData();
     void LoadPlayerForRespawn();
+    */
 
     // Inventory
     // void SaveInventory();
@@ -432,11 +448,13 @@ class MYTHION_API AM_PlayerController : public APlayerController
 
   protected:
     // Backend
+    /*
     void OnPlayerDataLoaded(TSharedPtr<class IHttpRequest, ESPMode::ThreadSafe> Request,
-                            TSharedPtr<class IHttpResponse, ESPMode::ThreadSafe> Response, bool bWasSuccessful);
+    TSharedPtr<class IHttpResponse, ESPMode::ThreadSafe> Response, bool bWasSuccessful);
     void OnPlayerDataForRespawn(TSharedPtr<class IHttpRequest, ESPMode::ThreadSafe> Request,
-                                TSharedPtr<class IHttpResponse, ESPMode::ThreadSafe> Response, bool bWasSuccessful);
+    TSharedPtr<class IHttpResponse, ESPMode::ThreadSafe> Response, bool bWasSuccessful);
     void OnPlayerStatsSaved(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+    */
 
     void OnInventorySaved(TSharedPtr<IHttpRequest, ESPMode::ThreadSafe> Request,
                           TSharedPtr<IHttpResponse, ESPMode::ThreadSafe> Response, bool bWasSuccessful);

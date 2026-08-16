@@ -60,11 +60,17 @@
 #include "Kismet/GameplayStatics.h"
 #include "Simple_Inventory/Widgets/M_QuantityWidget.h"
 
+#include "PlayerController/Components/M_BackendComponent.h"
+#include "PlayerController/Components/M_MusicComponent.h"
+
 // Initialization
 AM_PlayerController::AM_PlayerController()
 {
     PrimaryActorTick.bCanEverTick = true;
     bReplicates = true;
+
+    MusicComponent = CreateDefaultSubobject<UM_MusicComponent>(TEXT("MusicComponent"));
+    BackendComponent = CreateDefaultSubobject<UM_BackendComponent>(TEXT("BackendSyncComponent"));
 }
 
 void AM_PlayerController::ShowLoadingScreen()
@@ -102,8 +108,14 @@ void AM_PlayerController::HideLoadingScreen()
 
 void AM_PlayerController::CheckAllLoaded()
 {
-
     FString MapName = GetWorld()->GetMapName();
+
+    if (GEngine)
+        GEngine->AddOnScreenDebugMessage(
+            -1, 5.f, FColor::Yellow,
+            FString::Printf(TEXT("CheckAllLoaded: Stats=%d Inv=%d Quests=%d ASC=%d Map=%s"), bStatsLoaded,
+                            bInventoryLoaded, bQuestsLoaded, bOnASCReadyForAbilities, *MapName));
+
     if (bStatsLoaded && bInventoryLoaded && bQuestsLoaded && !MapName.Contains("Character_Selection") &&
         !MapName.Contains("LoginLayer") && bOnASCReadyForAbilities)
         HideLoadingScreen();
@@ -115,7 +127,6 @@ void AM_PlayerController::BeginPlay()
 
     APlayerCharacter *PC = Cast<APlayerCharacter>(GetPawn());
 
-    PlayTheSound();
     FString MapName = GetWorld()->GetMapName();
 
     if (MapName.Contains("Character_Selection"))
@@ -143,12 +154,15 @@ void AM_PlayerController::BeginPlay()
 
     if (IsLocalController() && !MapName.Contains("Character_Selection") && !MapName.Contains("LoginLayer"))
         ShowLoadingScreen();
+    MusicComponent->PlayTheSound();
 
     bStatsLoaded = false;
     bInventoryLoaded = false;
     bQuestsLoaded = false;
+    // LoadPlayerData();
+    BackendComponent->PlayerAuthToken = PlayerAuthToken;
+    BackendComponent->LoadPlayerData();
 
-    LoadPlayerData();
     if (IsLocalController())
     {
 
@@ -163,9 +177,12 @@ void AM_PlayerController::BeginPlay()
         GetWorld()->GetTimerManager().SetTimer(
             InventorySaveTimer, this, &AM_PlayerController::Client_RequestInventorySave, 25.f, true, RandomInvDelay);
 
-        float RandomStatsDelay = FMath::FRandRange(1.f, 30.f);
-        GetWorld()->GetTimerManager().SetTimer(StatsSaveTimer, this, &AM_PlayerController::Client_RequestStatsSave,
-                                               40.f, true, RandomStatsDelay);
+        //   float RandomStatsDelay = FMath::FRandRange(1.f, 30.f);
+
+        BackendComponent->StartStatsSaveTimer();
+
+        // GetWorld()->GetTimerManager().SetTimer(StatsSaveTimer, this, &AM_PlayerController::Client_RequestStatsSave,
+        //    40.f, true, RandomStatsDelay);
     }
 }
 void AM_PlayerController::Tick(float DeltaSeconds)
@@ -209,8 +226,8 @@ void AM_PlayerController::OnPossess(APawn *InPawn)
     if (IsValid(Backend) && !Backend->AuthToken.IsEmpty())
     {
         PlayerAuthToken = Backend->AuthToken;
+        BackendComponent->PlayerAuthToken = PlayerAuthToken;
     }
-
     PC->OnASCInitialized.RemoveDynamic(this, &AM_PlayerController::OnASCReady);
     PC->OnASCInitialized.AddDynamic(this, &AM_PlayerController::OnASCReady);
     PC->InventoryComponent->OnInventoryFull.AddDynamic(this, &AM_PlayerController::OnInventoryFull);
@@ -665,6 +682,7 @@ void AM_PlayerController::OnInventoryLoaded(TSharedPtr<IHttpRequest, ESPMode::Th
 }
 
 // Stats & Backend
+/*
 void AM_PlayerController::Server_SavePlayerStats_Implementation()
 {
     APlayerCharacter *Char = Cast<APlayerCharacter>(GetPawn());
@@ -769,6 +787,20 @@ void AM_PlayerController::OnPlayerDataLoaded(TSharedPtr<class IHttpRequest, ESPM
                                              TSharedPtr<class IHttpResponse, ESPMode::ThreadSafe> Response,
                                              bool bWasSuccessful)
 {
+    if (GEngine)
+        GEngine->AddOnScreenDebugMessage(
+            -1, 8.f, FColor::Cyan,
+            FString::Printf(TEXT("[Stats] bWasSuccessful=%d, ResponseValid=%d"), bWasSuccessful, Response.IsValid()));
+
+    if (Response.IsValid())
+    {
+        if (GEngine)
+            GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Cyan,
+                                             FString::Printf(TEXT("[Stats] Code=%d, Body=%s"),
+                                                             Response->GetResponseCode(),
+                                                             *Response->GetContentAsString()));
+    }
+
     if (!bWasSuccessful || !Response.IsValid())
     {
         UE_LOG(LogTemp, Error, TEXT("Failed to load stats from server"));
@@ -825,7 +857,7 @@ void AM_PlayerController::OnPlayerDataLoaded(TSharedPtr<class IHttpRequest, ESPM
             AttributeSet->SetMana(Mana);
 
         }
-        */
+
 
         if (IsValid(PC) && IsValid(PC->CharacterClassData))
         {
@@ -1002,7 +1034,7 @@ void AM_PlayerController::OnPlayerDataForRespawn(TSharedPtr<class IHttpRequest, 
                 {
                     ASC->RemoveLooseGameplayTag(FGameplayTag::RequestGameplayTag(FName("Status.Dead")));
                 }
-        */
+
         const UM_AttributeSet *ConstAttributeSet =
             Cast<UM_AttributeSet>(ASC->GetAttributeSet(UM_AttributeSet::StaticClass()));
         if (!ConstAttributeSet)
@@ -1029,7 +1061,7 @@ void AM_PlayerController::OnPlayerDataForRespawn(TSharedPtr<class IHttpRequest, 
         }
     }
 }
-
+*/
 // Quests & Backend
 
 // Quests and Widgets
@@ -1771,8 +1803,7 @@ void AM_PlayerController::Server_Respawn_Implementation()
     Char->SetActorLocationAndRotation(TargetLocation, Char->GetActorRotation(), false, nullptr,
                                       ETeleportType::TeleportPhysics);
 
-    EnemiesSpottingMe.Empty();
-    PlayTheSound();
+    // MusicComponent->PlayTheSound();
 
     Char->GetMesh()->SetSimulatePhysics(false);
     Char->GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
@@ -2014,15 +2045,22 @@ void AM_PlayerController::Server_SetAuthToken_Implementation(const FString &Toke
 {
     PlayerAuthToken = Token;
     //	ClientTravel(TEXT("192.168.181.168"), ETravelType::TRAVEL_Absolute);
-    LoadPlayerData();
+    BackendComponent->LoadPlayerData();
 }
 void AM_PlayerController::Server_SetupAttributes_Implementation(int32 Level, int32 XP, float Mana, float Health,
                                                                 float Coins)
 {
     APlayerCharacter *PlayerChar = Cast<APlayerCharacter>(GetPawn());
-    if (!IsValid(PlayerChar))
-        return;
 
+    if (!IsValid(PlayerChar))
+    {
+        FTimerHandle RetryTimer;
+        GetWorld()->GetTimerManager().SetTimer(
+            RetryTimer,
+            [this, Level, XP, Mana, Health, Coins]() { Server_SetupAttributes(Level, XP, Mana, Health, Coins); }, 0.2f,
+            false);
+        return;
+    }
     FGameplayTag PlayerTag = PlayerChar->PlayerClassTag;
 
     UAbilitySystemComponent *ASC = PlayerChar->GetAbilitySystemComponent();
@@ -2206,54 +2244,55 @@ FVector AM_PlayerController::GetSafeRespawnPoint(FVector DeathLocation)
     return DeathLocation;
 }
 
+/*
 void AM_PlayerController::PlayTheSound()
 {
 
-    APlayerCharacter *PlayerChar = Cast<APlayerCharacter>(GetPawn());
-    if (!IsValid(PlayerChar))
-        return;
+APlayerCharacter *PlayerChar = Cast<APlayerCharacter>(GetPawn());
+if (!IsValid(PlayerChar))
+return;
 
-    if (IsValid(GenericSoundAudioComponent))
-    {
-        GenericSoundAudioComponent->OnAudioFinished.RemoveDynamic(this, &AM_PlayerController::OnFinishingGenericSound);
-        GenericSoundAudioComponent->FadeOut(0.3f, 0.0f);
-        GenericSoundAudioComponent = nullptr;
-    }
+if (IsValid(GenericSoundAudioComponent))
+{
+    GenericSoundAudioComponent->OnAudioFinished.RemoveDynamic(this, &AM_PlayerController::OnFinishingGenericSound);
+    GenericSoundAudioComponent->FadeOut(0.3f, 0.0f);
+    GenericSoundAudioComponent = nullptr;
+}
 
-    if (!GetSpotted())
+if (!GetSpotted())
+{
+    GenericSoundAudioComponent = nullptr;
+    if (GenericGameSounds.IsValidIndex(SoundIndex))
     {
-        GenericSoundAudioComponent = nullptr;
-        if (GenericGameSounds.IsValidIndex(SoundIndex))
+
+    GenericSoundAudioComponent = UGameplayStatics::SpawnSoundAtLocation(
+        this, GenericGameSounds[SoundIndex], PlayerChar->GetActorLocation(), FRotator::ZeroRotator, 0.3f);
+
+        if (GenericSoundAudioComponent)
         {
-
-            GenericSoundAudioComponent = UGameplayStatics::SpawnSoundAtLocation(
-                this, GenericGameSounds[SoundIndex], PlayerChar->GetActorLocation(), FRotator::ZeroRotator, 0.3f);
-
-            if (GenericSoundAudioComponent)
-            {
-                GenericSoundAudioComponent->FadeIn(0.3f, 1.0f);
-                GenericSoundAudioComponent->OnAudioFinished.AddDynamic(this,
-                                                                       &AM_PlayerController::OnFinishingGenericSound);
-            }
+            GenericSoundAudioComponent->FadeIn(0.3f, 1.0f);
+            GenericSoundAudioComponent->OnAudioFinished.AddDynamic(this,
+            &AM_PlayerController::OnFinishingGenericSound);
         }
     }
-    else
+}
+else
+{
+    GenericSoundAudioComponent = nullptr;
+    if (SoundCombat.IsValidIndex(SoundIndex))
     {
-        GenericSoundAudioComponent = nullptr;
-        if (SoundCombat.IsValidIndex(SoundIndex))
-        {
 
-            GenericSoundAudioComponent =
-                UGameplayStatics::SpawnSoundAtLocation(this, SoundCombat[SoundIndex], PlayerChar->GetActorLocation());
+    GenericSoundAudioComponent =
+    UGameplayStatics::SpawnSoundAtLocation(this, SoundCombat[SoundIndex], PlayerChar->GetActorLocation());
 
-            if (GenericSoundAudioComponent)
-            {
-                GenericSoundAudioComponent->FadeIn(0.3f, 1.0f);
-                GenericSoundAudioComponent->OnAudioFinished.AddDynamic(this,
-                                                                       &AM_PlayerController::OnFinishingGenericSound);
-            }
-        }
+    if (GenericSoundAudioComponent)
+    {
+        GenericSoundAudioComponent->FadeIn(0.3f, 1.0f);
+        GenericSoundAudioComponent->OnAudioFinished.AddDynamic(this,
+        &AM_PlayerController::OnFinishingGenericSound);
     }
+}
+}
 }
 
 void AM_PlayerController::OnFinishingGenericSound()
@@ -2276,39 +2315,14 @@ void AM_PlayerController::OnFinishingGenericSound()
     }
 }
 
+*/
 void AM_PlayerController::Client_NotifyUserByEnemyPerception_Implementation(bool bPerceived, AActor *Enemy)
 {
-    bool bWasSpotted = GetSpotted();
+    MusicComponent->NotifyEnemyPerception(bPerceived, Enemy);
+}
 
-    if (bPerceived)
-    {
-        EnemiesSpottingMe.AddUnique(Enemy);
-    }
-    else
-    {
-        EnemiesSpottingMe.Remove(Enemy);
-    }
+void AM_PlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
 
-    bool bIsSpottedNow = GetSpotted();
-
-    if (bWasSpotted == bIsSpottedNow)
-        return;
-
-    if (bIsSpottedNow)
-    {
-        GetWorldTimerManager().ClearTimer(MusicDebounceTimer);
-        SoundIndex = 0;
-        PlayTheSound();
-    }
-    else
-    {
-        GetWorldTimerManager().ClearTimer(MusicDebounceTimer);
-        GetWorldTimerManager().SetTimer(
-            MusicDebounceTimer,
-            [this]() {
-                SoundIndex = 0;
-                PlayTheSound();
-            },
-            MusicDebounceDelay, false);
-    }
+    Super::EndPlay(EndPlayReason);
 }

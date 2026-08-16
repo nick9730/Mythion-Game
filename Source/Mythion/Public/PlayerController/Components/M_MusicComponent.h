@@ -2,28 +2,52 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "CoreMinimal.h"
 #include "M_MusicComponent.generated.h"
 
+class USoundBase;
+class UAudioComponent;
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+UCLASS(ClassGroup = (Custom), BlueprintType, Blueprintable, meta = (BlueprintSpawnableComponent))
 class MYTHION_API UM_MusicComponent : public UActorComponent
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-public:	
-	// Sets default values for this component's properties
-	UM_MusicComponent();
+  public:
+    UM_MusicComponent();
 
-protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
+    void PlayTheSound();
+    void NotifyEnemyPerception(bool bPerceived, AActor *Enemy);
+    bool GetSpotted() const
+    {
+        return EnemiesSpottingMe.Num() > 0;
+    }
 
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+    UPROPERTY(EditAnywhere)
+    TArray<USoundBase *> GenericGameSounds;
 
-		
-	
+    UPROPERTY(EditAnywhere)
+    TArray<USoundBase *> SoundCombat;
+
+    UPROPERTY(EditAnywhere)
+    float MusicDebounceDelay = 3.0f;
+
+    UPROPERTY()
+    TObjectPtr<UAudioComponent> GenericSoundAudioComponent;
+
+    UPROPERTY()
+    TArray<TObjectPtr<AActor>> EnemiesSpottingMe;
+
+    int32 SoundIndex = 0;
+
+    FTimerHandle MusicDebounceTimer;
+
+  protected:
+    virtual void BeginPlay() override;
+
+    UFUNCTION()
+    void OnFinishingGenericSound();
+
+  private:
 };

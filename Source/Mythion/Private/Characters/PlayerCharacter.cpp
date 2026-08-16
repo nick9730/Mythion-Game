@@ -20,6 +20,7 @@
 #include "M_QuestComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Net/UnrealNetwork.h"
+#include "PlayerController/Components/M_BackendComponent.h"
 #include "Simple_Inventory/Data/M_Interactive_Item.h"
 #include "Simple_Inventory/InventoryComponent.h"
 #include "Weapons/WeaponBase.h"
@@ -388,8 +389,9 @@ void APlayerCharacter::OnRep_PlayerState()
             UM_BackendSubsystem *Backend = PController->GetGameInstance()->GetSubsystem<UM_BackendSubsystem>();
             if (IsValid(Backend) && !Backend->AuthToken.IsEmpty())
             {
+                PController->BackendComponent->PlayerAuthToken = Backend->AuthToken;
                 PController->PlayerAuthToken = Backend->AuthToken;
-                PController->LoadPlayerData();
+                PController->BackendComponent->LoadPlayerData();
             }
         }
     }
@@ -466,6 +468,12 @@ void APlayerCharacter::Server_ApplyCharacterClass_Implementation(FGameplayTag Cl
 void APlayerCharacter::ApplyCharacterClassData(TSoftObjectPtr<UCharacterClasses> ClassData,
                                                const FGameplayTag TagMatches)
 {
+
+    if (GEngine)
+        GEngine->AddOnScreenDebugMessage(
+            -1, 5.f, FColor::Purple,
+            FString::Printf(TEXT("ApplyCharacterClass CALLED with tag=%s"), *TagMatches.ToString()));
+
     USkeletalMeshComponent *MeshComp = GetMesh();
     if (!MeshComp)
         return;
