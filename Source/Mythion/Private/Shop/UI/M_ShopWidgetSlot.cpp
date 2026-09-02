@@ -1,17 +1,18 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Shop/UI/M_ShopWidgetSlot.h"
+#include "Characters/PlayerCharacter.h"
+#include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "M_PlayerController.h"
-#include "Components/Button.h"
-#include "Characters/PlayerCharacter.h"
+#include "PlayerController/Components/M_ShopComponent.h"
 
-void UM_ShopWidgetSlot::InitSlot(UM_Item_Details* Item)
+void UM_ShopWidgetSlot::InitSlot(UM_Item_Details *Item)
 {
 
-    if (!IsValid(Item)) return;
+    if (!IsValid(Item))
+        return;
 
     CurrentItem = Item;
 
@@ -33,7 +34,7 @@ void UM_ShopWidgetSlot::InitSlot(UM_Item_Details* Item)
 
 void UM_ShopWidgetSlot::OnBuyButtonClicked()
 {
-	AM_PlayerController* PC = Cast<AM_PlayerController>(GetOwningPlayer());
+    AM_PlayerController *PC = Cast<AM_PlayerController>(GetOwningPlayer());
 
     FItemData NewItem;
     NewItem.ItemID = CurrentItem->ItemID;
@@ -45,14 +46,13 @@ void UM_ShopWidgetSlot::OnBuyButtonClicked()
     NewItem.ItemDataAsset = CurrentItem;
     NewItem.Socket = CurrentItem->Socket;
 
-	if (IsValid(PC) && IsValid(CurrentItem))
+    if (IsValid(PC) && IsValid(CurrentItem))
     {
-        PC->Server_BuyItemFromShop(NewItem);
+        PC->ShopComponent->Server_BuyItemFromShop(NewItem);
     }
-
 }
 
 void UM_ShopWidgetSlot::NativeConstruct()
 {
-	BuyButton->OnClicked.AddDynamic(this, &UM_ShopWidgetSlot::OnBuyButtonClicked);
+    BuyButton->OnClicked.AddDynamic(this, &UM_ShopWidgetSlot::OnBuyButtonClicked);
 }

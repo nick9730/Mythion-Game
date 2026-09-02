@@ -9,10 +9,11 @@
 #include "Characters/PlayerCharacter/M_PlayerState.h"
 #include "Engine/Engine.h"
 #include "GameplayEffectExtension.h"
+#include "Kismet/GameplayStatics.h"
 #include "M_PlayerController.h"
 #include "Net/UnrealNetwork.h"
 #include "Perception/AISense_Damage.h"
-#include <Kismet/GameplayStatics.h>
+#include "PlayerController/Components/M_RespawnComponent.h"
 /*
 simple -> webserver  express  or hono
 oarem  -> drissle oarem  or micro oarem
@@ -118,7 +119,7 @@ void UM_AttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallback
             {
                 AM_PlayerController *PC = Cast<AM_PlayerController>(PlayerChar->GetController());
                 if (IsValid(PC))
-                    PC->Client_ShowRespawnWidget();
+                    PC->RespawnComponent->Client_ShowRespawnWidget();
             }
         }
 
@@ -304,4 +305,64 @@ void UM_AttributeSet::OnRep_MaxEnergy(const FGameplayAttributeData &OldValue)
     if (!IsValid(ASC))
         return;
     GAMEPLAYATTRIBUTE_REPNOTIFY(UM_AttributeSet, MaxEnergy, OldValue);
+}
+
+void UM_AttributeSet::ApplyStatsFromBackend(UAbilitySystemComponent *ASC, TSubclassOf<UGameplayEffect> InitEffect,
+                                            float MaxHealth, float MaxMana, float Level, float XP, float XPMax,
+                                            float Coins, float Armor, float MagicResist, float Energy, float MaxEnergy,
+                                            float Health, float Mana)
+{
+    if (!IsValid(ASC) || !IsValid(InitEffect))
+        return;
+
+    FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
+    FGameplayEffectSpecHandle Spec = ASC->MakeOutgoingSpec(InitEffect, 1, Context);
+
+    UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(
+        Spec, FGameplayTag::RequestGameplayTag("Data.MaxHealth"), MaxHealth);
+    UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(
+        Spec, FGameplayTag::RequestGameplayTag("Data.MaxMana"), MaxMana);
+    UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(Spec, FGameplayTag::RequestGameplayTag("Data.Level"),
+                                                                  Level);
+    UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(Spec, FGameplayTag::RequestGameplayTag("Data.XP"),
+                                                                  XP);
+    UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(Spec, FGameplayTag::RequestGameplayTag("Data.XpMax"),
+                                                                  XPMax);
+    UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(
+        Spec, FGameplayTag::RequestGameplayTag("Overlap.Coins.Initialize"), Coins);
+    UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(Spec, FGameplayTag::RequestGameplayTag("Data.Armor"),
+                                                                  Armor);
+    UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(
+        Spec, FGameplayTag::RequestGameplayTag("Data.MagicResist"), MagicResist);
+    UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(Spec, FGameplayTag::RequestGameplayTag("Data.Energy"),
+                                                                  Energy);
+    UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(
+        Spec, FGameplayTag::RequestGameplayTag("Data.MaxEnergy"), MaxEnergy);
+    UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(Spec, FGameplayTag::RequestGameplayTag("Data.Health"),
+                                                                  Health);
+    UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(Spec, FGameplayTag::RequestGameplayTag("Data.Mana"),
+                                                                  Mana);
+
+    ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+}
+
+void UM_AttributeSet::CalculateClassStats(FGameplayTag PlayerClassTag, UCurveTable *XpScaleTable, int32 Level,
+                                          float &OutXpMaxLimit, float &OutMaxMana, float &OutMaxHealth)
+{
+
+    if (!IsValid(XpScaleTable))
+        return;
+
+    if (PlayerClassTag.MatchesTagExact(FGameplayTag::RequestGameplayTag("Classes.Warrior")))
+    {
+        OutXpMaxLimit = XpScaleTable->FindCurve(FName("XpMax"), "XP Lookup")->Eval(Level);
+        OutMaxMana = XpScaleTable->FindCurve(FName("MaxManaWarrior"), "Mana Lookup")->Eval(Level);
+        OutMaxHealth = XpScaleTable->FindCurve(FName("MaxHealthWarrior"), "Health Lookup")->Eval(Level);
+    }
+    else if (PlayerClassTag.MatchesTagExact(FGameplayTag::RequestGameplayTag("Classes.Rogue")))
+    {
+        OutXpMaxLimit = XpScaleTable->FindCurve(FName("XpMax"), "XP Lookup")->Eval(Level);
+        OutMaxMana = XpScaleTable->FindCurve(FName("MaxManaMage"), "Mana Lookup")->Eval(Level);
+        OutMaxHealth = XpScaleTable->FindCurve(FName("MaxHealthMage"), "Health Lookup")->Eval(Level);
+    }
 }

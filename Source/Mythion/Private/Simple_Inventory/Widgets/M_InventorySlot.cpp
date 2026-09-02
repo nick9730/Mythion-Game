@@ -1,18 +1,18 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-
-
 #include "Simple_Inventory/Widgets/M_InventorySlot.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Components/Border.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
-#include "Components/Border.h"
-#include "Blueprint/WidgetBlueprintLibrary.h"
-#include "Simple_Inventory/Widgets/M_HoverInfosItems.h"
 #include "M_PlayerController.h"
+#include "PlayerController/Components/M_InventoryActionsComponent.h"
+#include "PlayerController/Components/M_UIComponent.h"
+#include "Simple_Inventory/Widgets/M_HoverInfosItems.h"
+#include "Simple_Inventory/Widgets/M_QuantityWidget.h"
 
-void UM_InventorySlot::SetItem(const FItemData& Item, int32 Index)
+void UM_InventorySlot::SetItem(const FItemData &Item, int32 Index)
 {
-
 
     ItemData = Item;
     SlotIndex = Index;
@@ -21,7 +21,7 @@ void UM_InventorySlot::SetItem(const FItemData& Item, int32 Index)
     {
         if (ItemIcon && Item.Icon)
             ItemIcon->SetBrushFromTexture(Item.Icon);
-     
+
         if (QuantityText)
         {
             if (Item.Quantity > 1)
@@ -56,43 +56,44 @@ void UM_InventorySlot::ClearSlot()
 
 void UM_InventorySlot::OpenQuantityWidget(FVector2D DesiredPosition)
 {
-    APlayerController* PC = GetOwningPlayer();
-	if (!IsValid(PC)) return;
-    AM_PlayerController* MPC = Cast<AM_PlayerController>(PC);   
-    if (!IsValid(MPC)) return;
+    APlayerController *PC = GetOwningPlayer();
+    if (!IsValid(PC))
+        return;
+    AM_PlayerController *MPC = Cast<AM_PlayerController>(PC);
+    if (!IsValid(MPC))
+        return;
     FVector2D SlotPos = GetCachedGeometry().GetAbsolutePosition();
-    MPC->Client_OpenQuantityWidget(ItemData, DesiredPosition, SlotIndex);
-
+    MPC->UIComponent->Client_OpenQuantityWidget(ItemData, DesiredPosition, SlotIndex);
 }
 
-FReply UM_InventorySlot::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+FReply UM_InventorySlot::NativeOnMouseButtonDown(const FGeometry &InGeometry, const FPointerEvent &InMouseEvent)
 {
     if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) && ItemData.IsValid())
-    {           
-            FVector2D MousePosition = InMouseEvent.GetScreenSpacePosition();
+    {
+        FVector2D MousePosition = InMouseEvent.GetScreenSpacePosition();
 
-            
-            FVector2D ViewportSize;
-            GEngine->GameViewport->GetViewportSize(ViewportSize);
+        FVector2D ViewportSize;
+        GEngine->GameViewport->GetViewportSize(ViewportSize);
 
-            FVector2D DesiredPosition = MousePosition;
+        FVector2D DesiredPosition = MousePosition;
 
-            DesiredPosition.X = FMath::Clamp(DesiredPosition.X, 0.f, ViewportSize.X - 50.f);
-            DesiredPosition.Y = FMath::Clamp(DesiredPosition.Y, 0.f, ViewportSize.Y - 50.f);
-		
-		OpenQuantityWidget(DesiredPosition);
+        DesiredPosition.X = FMath::Clamp(DesiredPosition.X, 0.f, ViewportSize.X - 50.f);
+        DesiredPosition.Y = FMath::Clamp(DesiredPosition.Y, 0.f, ViewportSize.Y - 50.f);
+
+        OpenQuantityWidget(DesiredPosition);
 
         return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
     }
     return FReply::Unhandled();
 }
 
-void UM_InventorySlot::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation)
+void UM_InventorySlot::NativeOnDragDetected(const FGeometry &InGeometry, const FPointerEvent &InMouseEvent,
+                                            UDragDropOperation *&OutOperation)
 {
-    AM_PlayerController* PC = Cast<AM_PlayerController>(GetOwningPlayer());
-    if (IsValid(PC) && IsValid(PC->QuantityWidget))
-        PC->QuantityWidget->HideQuantityPopUp(ItemData);
-    UDragDropOperation* DragOp = UWidgetBlueprintLibrary::CreateDragDropOperation(UDragDropOperation::StaticClass());
+    AM_PlayerController *PC = Cast<AM_PlayerController>(GetOwningPlayer());
+    if (IsValid(PC) && IsValid(PC->UIComponent->QuantityWidget))
+        PC->UIComponent->QuantityWidget->HideQuantityPopUp(ItemData);
+    UDragDropOperation *DragOp = UWidgetBlueprintLibrary::CreateDragDropOperation(UDragDropOperation::StaticClass());
     if (IsValid(DragOp))
     {
         DragOp->Payload = this;
@@ -101,12 +102,13 @@ void UM_InventorySlot::NativeOnDragDetected(const FGeometry& InGeometry, const F
     }
 }
 
-bool UM_InventorySlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+bool UM_InventorySlot::NativeOnDrop(const FGeometry &InGeometry, const FDragDropEvent &InDragDropEvent,
+                                    UDragDropOperation *InOperation)
 {
-    UM_InventorySlot* DraggedSlot = Cast<UM_InventorySlot>(InOperation->Payload);
-    if (!IsValid(DraggedSlot)) return false;
+    UM_InventorySlot *DraggedSlot = Cast<UM_InventorySlot>(InOperation->Payload);
+    if (!IsValid(DraggedSlot))
+        return false;
 
-  
     FItemData TempItem = ItemData;
     SetItem(DraggedSlot->ItemData, SlotIndex);
     DraggedSlot->SetItem(TempItem, DraggedSlot->SlotIndex);
@@ -114,35 +116,38 @@ bool UM_InventorySlot::NativeOnDrop(const FGeometry& InGeometry, const FDragDrop
     return true;
 }
 
-void UM_InventorySlot::NativeOnDragCancelled(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+void UM_InventorySlot::NativeOnDragCancelled(const FDragDropEvent &InDragDropEvent, UDragDropOperation *InOperation)
 {
-    UM_InventorySlot* DraggedSlot = Cast<UM_InventorySlot>(InOperation->Payload);
-    if (!IsValid(DraggedSlot) || !DraggedSlot->ItemData.IsValid()) return;
+    UM_InventorySlot *DraggedSlot = Cast<UM_InventorySlot>(InOperation->Payload);
+    if (!IsValid(DraggedSlot) || !DraggedSlot->ItemData.IsValid())
+        return;
 
-  
-    APlayerController* PC = GetOwningPlayer();
-    AM_PlayerController* MPC = Cast<AM_PlayerController>(PC);
-    if (!IsValid(MPC)) return;
+    APlayerController *PC = GetOwningPlayer();
+    AM_PlayerController *MPC = Cast<AM_PlayerController>(PC);
+    if (!IsValid(MPC))
+        return;
 
-    MPC->Server_DropItem(DraggedSlot->SlotIndex,ItemData.Quantity);
-
+    MPC->InventoryActionsComponent->Server_DropItem(DraggedSlot->SlotIndex, ItemData.Quantity);
 }
 
-FReply UM_InventorySlot::NativeOnMouseButtonDoubleClick(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+FReply UM_InventorySlot::NativeOnMouseButtonDoubleClick(const FGeometry &InGeometry, const FPointerEvent &InMouseEvent)
 {
-     if (!ItemData.IsValid()) return FReply::Unhandled();
+    if (!ItemData.IsValid())
+        return FReply::Unhandled();
 
-    AM_PlayerController* PC = Cast<AM_PlayerController>(GetOwningPlayer());
-    if (!IsValid(PC)) return FReply::Unhandled();
+    AM_PlayerController *PC = Cast<AM_PlayerController>(GetOwningPlayer());
+    if (!IsValid(PC))
+        return FReply::Unhandled();
 
-    PC->Server_UseItem(SlotIndex);
+    PC->InventoryActionsComponent->Server_UseItem(SlotIndex);
     return FReply::Handled();
 }
-void UM_InventorySlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+void UM_InventorySlot::NativeOnMouseEnter(const FGeometry &InGeometry, const FPointerEvent &InMouseEvent)
 {
     Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
 
-    if (!ItemData.IsValid() || !IsValid(ItemData.ItemDataAsset) || !HoverInfosWidgetClass) return;
+    if (!ItemData.IsValid() || !IsValid(ItemData.ItemDataAsset) || !HoverInfosWidgetClass)
+        return;
 
     if (!HoverInfosWidgetInstance)
     {
@@ -156,8 +161,8 @@ void UM_InventorySlot::NativeOnMouseEnter(const FGeometry& InGeometry, const FPo
     }
 }
 
-void UM_InventorySlot::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+void UM_InventorySlot::NativeOnMouseLeave(const FPointerEvent &InMouseEvent)
 {
     Super::NativeOnMouseLeave(InMouseEvent);
-    //SetToolTip(nullptr);
+    // SetToolTip(nullptr);
 }

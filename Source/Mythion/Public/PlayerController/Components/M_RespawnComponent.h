@@ -2,28 +2,36 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "CoreMinimal.h"
 #include "M_RespawnComponent.generated.h"
 
+class UM_RespawnWidget;
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+UCLASS(ClassGroup = (Custom), BlueprintType, Blueprintable, meta = (BlueprintSpawnableComponent))
 class MYTHION_API UM_RespawnComponent : public UActorComponent
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-public:	
-	// Sets default values for this component's properties
-	UM_RespawnComponent();
+  public:
+    UM_RespawnComponent();
 
-protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
+    UFUNCTION(Server, Reliable)
+    void Server_Respawn();
 
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+    UFUNCTION(Client, Reliable)
+    void Client_ShowRespawnWidget();
 
-		
-	
+    UFUNCTION(Client, Reliable)
+    void Client_HideRespawnWidget();
+
+    UPROPERTY(EditDefaultsOnly, Category = "Respawn")
+    TSubclassOf<UM_RespawnWidget> RespawnWidgetClass;
+
+    FVector GetCorrectZLocation(FVector TargetLocation);
+    FVector GetSafeRespawnPoint(FVector DeathLocation);
+
+  private:
+    UPROPERTY()
+    TObjectPtr<UM_RespawnWidget> RespawnWidget;
 };

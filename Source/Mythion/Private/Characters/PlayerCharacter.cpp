@@ -21,8 +21,13 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Net/UnrealNetwork.h"
 #include "PlayerController/Components/M_BackendComponent.h"
+#include "PlayerController/Components/M_RespawnComponent.h"
+#include "PlayerController/Components/M_UIComponent.h"
+
+#include "Backend/M_BackendSubsystem.h"
 #include "Simple_Inventory/Data/M_Interactive_Item.h"
 #include "Simple_Inventory/InventoryComponent.h"
+#include "Simple_Inventory/Widgets/M_QuantityWidget.h"
 #include "Weapons/WeaponBase.h"
 
 APlayerCharacter::APlayerCharacter()
@@ -357,17 +362,17 @@ void APlayerCharacter::OnRep_PlayerState()
     AM_PlayerController *PC = Cast<AM_PlayerController>(GetController());
     if (IsValid(PC) && IsLocallyControlled())
     {
-        PC->TryInitInventory();
+        PC->UIComponent->TryInitInventory();
         UM_BackendSubsystem *Backend = PC->GetGameInstance()->GetSubsystem<UM_BackendSubsystem>();
     }
 
     if (IsValid(PC) && IsLocallyControlled())
     {
-        if (IsValid(PC->QuantityWidgetClass) && !IsValid(PC->QuantityWidget))
+        if (IsValid(PC->UIComponent->QuantityWidgetClass) && !IsValid(PC->UIComponent->QuantityWidget))
         {
-            PC->QuantityWidget = CreateWidget<UM_QuantityWidget>(PC, PC->QuantityWidgetClass);
-            PC->QuantityWidget->AddToViewport(15);
-            PC->QuantityWidget->SetVisibility(ESlateVisibility::Hidden);
+            PC->UIComponent->QuantityWidget = CreateWidget<UM_QuantityWidget>(PC, PC->UIComponent->QuantityWidgetClass);
+            PC->UIComponent->QuantityWidget->AddToViewport(15);
+            PC->UIComponent->QuantityWidget->SetVisibility(ESlateVisibility::Hidden);
         }
     }
 
@@ -543,7 +548,7 @@ void APlayerCharacter::HandleRespawn()
     AM_PlayerController *PC = Cast<AM_PlayerController>(GetController());
     if (IsValid(PC))
     {
-        PC->Client_ShowRespawnWidget();
+        PC->RespawnComponent->Client_ShowRespawnWidget();
     }
 }
 void APlayerCharacter::OnDeathTagChanged(const FGameplayTag CallbackTag, int32 NewCount)
